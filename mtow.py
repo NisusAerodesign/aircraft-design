@@ -1,20 +1,9 @@
 import numpy as np
+from inputs import *
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
-#%% Constants - Valores temporários
-LD      = 17         # 
-R       = 6_200e3    #[m] - range
-C       = 1          # consumo específico de combustível
-M       = 0.8        
-V       = 1          # velocidade
-pmed    = 75         # kg
-Qt_p    = 5  
-crew    = 2
-payload = 23         # kg/pessoa
- 
 #%% Functions 
-
 # Empty Weight
 def Raymer_We(category:str)->any:
     coefs = {
@@ -51,5 +40,5 @@ def Raymer_Wf(fase:str)->any:
  
 #%% MTOW
 Wt  = (Qt_p+crew)*pmed  # peso tripulação
-Wpl = (Qt_p)*payload    # peso payload
+Wpl = payload           # peso payload
 
