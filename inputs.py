@@ -10,12 +10,13 @@ T       = lambda H: T0 + Lambda*H
 a       = lambda H: (gamma*Rsp*T(H))**(0.5) 
 
 #%% Aeronave
-LD      = 17             
+LDmax   = 17             
 R       = 6_500e3       # [m]
-C       = 800/3600      # kg/h
-Hcru    = 13.7e3        # [m]
+SFC      = 0.42/3600    # kg/(kg.s)
+Hcru    = 11e3          # [m]
 Mcru    = 0.8        
 Vcru    = a(Hcru)*Mcru  # [m/s] 
+loiter  = 20*60         # [s] 
 
 #%% Missão
 pmed    = 75         # kg

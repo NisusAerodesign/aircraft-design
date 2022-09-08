@@ -1,3 +1,4 @@
+from re import M
 import numpy as np
 from inputs import *
 from scipy.optimize import fsolve
@@ -21,7 +22,7 @@ def Raymer_We(category:str)->any:
         'MilitaryCargo':[0.93, -0.07],
         'JetTransport' :[1.02, -0.06]
         }
-    A, C = coefs(category) 
+    A, C = coefs[category] 
     wewo = lambda wo: A*wo**(C)
     return wewo
 
@@ -30,15 +31,74 @@ def Raymer_Wf(fase:str)->any:
     coef = {
         'WuTo'      : 0.97,
         'Climb'     : 0.985,
-        'Climb-Ac'  : lambda M: (1.0065 - 0.0325*M)*(M<1)+ (0.991 - 0.007*M - 0.01*M**2)*(M>1),
+        'Climb-Ac'  : lambda M: (1.0065 - 0.0325*M) if M < 1 else  (0.991 - 0.007*M - 0.01*M**2),
         'Landing'   : 0.995,
-        'Cruise'    : lambda R, C, LD, V: np.exp(-R*C/(V*LD)),
-        'Loiter'    : lambda R, C, LD   : np.exp(-R*C/LD),
+        'Cruise'    : lambda R, SFC, LD, V: np.exp(-R*SFC/(V*LD)),
+        'Loiter'    : lambda R, SFC, LD   : np.exp(-R*SFC/LD),
     }
-    wf = coef(fase)
+    wf = coef[fase]
     return wf
  
 #%% MTOW
-Wt  = (Qt_p+crew)*pmed  # peso tripulação
-Wpl = payload           # peso payload
+'''
+Tripulação
+'''
+Wcrew = crew*pmed*2.20462262              # peso tripulação
 
+'''
+Carga paga
+'''
+
+Wpl = (payload + Qt_p*pmed)*2.20462262  # peso payload
+
+'''
+Combustível
+'''
+
+We   = Raymer_We('JetTransport')
+A, C = We 
+
+# Warm Up and Take Off
+W1W0 = Raymer_Wf('WuTo')
+
+# Climb 1
+W2W1 = Raymer_Wf('Climb-Ac')(M)
+
+# Cruise 1
+R1    = R/0.3048
+LD    = LDmax*0.866 
+V1    = Vcru*0.911344415
+W3W2  = lambda x: Raymer_Wf('Cruise')(x, SFC, LD, V1) 
+
+# Loiter 1
+LD    = LDmax
+W4W3  = lambda x: Raymer_Wf('Loiter')(x,SFC,LD)
+
+# Attempt to land
+W5W4  = Raymer_Wf('Landing')
+ 
+# Climb 2
+W6W5  = W2W1 
+
+# Cruise 2
+tcru = R/Vcru
+LD   = LDmax*0.866
+W7W6 = Raymer_Wf('Loiter')(tcru, SFC, LD)
+
+# Loiter 2
+W8W7 = W4W3
+
+# Landing
+W9W8 = Raymer_Wf('Landing')
+
+# Fração de combustível
+def WfW0(R,t):
+    R   *= 3.28084
+    aux1 = W1W0*W2W1*W3W2(R)*W4W3(t)*W5W4*W6W5
+    aux1 *= W7W6*W8W7(t)*W9W8
+    
+    return 1.06*(1 - aux1)
+
+Res = lambda W0: Wpl + Wcrew + A*W0**(C+1) + WfW0(R,loiter)*W0 - W0 
+W0  = fsolve(Res, 18e3)
+print(f'W0 = {W0}')  
