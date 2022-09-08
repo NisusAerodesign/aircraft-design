@@ -23,7 +23,7 @@ def Raymer_We(category:str)->any:
         'JetTransport' :[1.02, -0.06]
         }
     A, C = coefs[category] 
-    wewo = lambda wo: A*wo**(C)
+    wewo = lambda wo: A*wo**(C+1)
     return wewo
 
 # Fuel 
@@ -55,8 +55,7 @@ Wpl = (payload + Qt_p*pmed)*2.20462262  # peso payload
 Combustível
 '''
 
-We   = Raymer_We('JetTransport')
-A, C = We 
+We   = Raymer_We('JetTransport') 
 
 # Warm Up and Take Off
 W1W0 = Raymer_Wf('WuTo')
@@ -99,6 +98,6 @@ def WfW0(R,t):
     
     return 1.06*(1 - aux1)
 
-Res = lambda W0: Wpl + Wcrew + A*W0**(C+1) + WfW0(R,loiter)*W0 - W0 
+Res = lambda W0: Wpl + Wcrew + We(W0) + WfW0(R,loiter)*W0 - W0 
 W0  = fsolve(Res, 18e3)
 print(f'W0 = {W0}')  
