@@ -1,11 +1,11 @@
-from re import M
+#%% Librarys
 import numpy as np
 from inputs import *
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
 #%% Functions 
-# Empty Weight
+
 def Raymer_We(category:str)->any:
     coefs = {
         'Sail'         :[0.86, -0.05],
@@ -23,10 +23,9 @@ def Raymer_We(category:str)->any:
         'JetTransport' :[1.02, -0.06]
         }
     A, C = coefs[category] 
-    wewo = lambda wo: A*wo**(C+1)
+    wewo = lambda wo: A*wo**(C)
     return wewo
-
-# Fuel 
+ 
 def Raymer_Wf(fase:str)->any:
     coef = {
         'WuTo'      : 0.97,
@@ -39,39 +38,31 @@ def Raymer_Wf(fase:str)->any:
     wf = coef[fase]
     return wf
  
-#%% MTOW
-'''
-Tripulação
-'''
-Wcrew = crew*pmed*2.20462262              # peso tripulação
 
-'''
-Carga paga
-'''
+#%% Tripulação
+Wcrew = crew*pmed*2.20462262            # [lb]
 
-Wpl = (payload + Qt_p*pmed)*2.20462262  # peso payload
+#%% Carga paga
+Wpl = (payload + Qt_p*pmed)*2.20462262  # [lb]
 
-'''
-Combustível
-'''
-
+#%% Combustível
 We   = Raymer_We('JetTransport') 
 
 # Warm Up and Take Off
 W1W0 = Raymer_Wf('WuTo')
 
 # Climb 1
-W2W1 = Raymer_Wf('Climb-Ac')(M)
+W2W1 = Raymer_Wf('Climb-Ac')(Mcru)
 
 # Cruise 1
-R1    = R/0.3048
-LD    = LDmax*0.866 
-V1    = Vcru*0.911344415
-W3W2  = lambda x: Raymer_Wf('Cruise')(x, SFC, LD, V1) 
+R1    = R/0.3048                # [ft]
+LD    = LDmax*0.866             
+V1    = Vcru*0.911344415        # [ft/s]
+W3W2  = lambda x: Raymer_Wf('Cruise')(x, SFCcru, LD, V1) 
 
 # Loiter 1
 LD    = LDmax
-W4W3  = lambda x: Raymer_Wf('Loiter')(x,SFC,LD)
+W4W3  = lambda x: Raymer_Wf('Loiter')(x,SFCloi,LD)
 
 # Attempt to land
 W5W4  = Raymer_Wf('Landing')
@@ -82,7 +73,7 @@ W6W5  = W2W1
 # Cruise 2
 tcru = R/Vcru
 LD   = LDmax*0.866
-W7W6 = Raymer_Wf('Loiter')(tcru, SFC, LD)
+W7W6 = Raymer_Wf('Loiter')(tcru, SFCcru, LD)
 
 # Loiter 2
 W8W7 = W4W3
@@ -92,12 +83,19 @@ W9W8 = Raymer_Wf('Landing')
 
 # Fração de combustível
 def WfW0(R,t):
-    R   *= 3.28084
+    R    *= 3.28084
     aux1 = W1W0*W2W1*W3W2(R)*W4W3(t)*W5W4*W6W5
     aux1 *= W7W6*W8W7(t)*W9W8
     
     return 1.06*(1 - aux1)
 
-Res = lambda W0: Wpl + Wcrew + We(W0) + WfW0(R,loiter)*W0 - W0 
-W0  = fsolve(Res, 18e3)
+Res = lambda W0: Wpl + Wcrew + We(W0)*W0 + WfW0(R,loiter)*W0 - W0 
+W0  = fsolve(Res, 18e3*2.20462)
 print(f'W0 = {W0}')  
+#%% plot
+x = np.arange(0,1e7)
+
+plt.plot(x,Res(x))
+plt.show()
+
+# %%
