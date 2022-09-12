@@ -9,11 +9,11 @@ def mission_estimation(
     LDmax:float,
     sfc_cruize:float,
     sfc_sea_level:float,
-    payload:float,
-    crew=2,
-    person_avg=75,
+    payload:float=1500.0,
+    crew:float=3.0,
+    person_avg:float=95.0,
     loiter_time:float=20.0,
-    Mach=0.8,
+    Mach:float=0.8,
     class_airplane='JetTransport'
     ):
     
@@ -98,7 +98,7 @@ def mission_estimation(
 
     ## W7/W6 -> Cruseiro 2 - tempo
     W7W6 = Raymer_Wf('Loiter')
-    W7W6 = W7W6(time_cruize, sfc_cruize, LDmax*0.866)
+    W7W6 = W7W6(time_second_range, sfc_cruize, LDmax*0.866)
     print(f'Cruise2           -> {W7W6}')
 
     ## W8/W7 -> Loiter
@@ -125,37 +125,24 @@ def mission_estimation(
     W0 = fsolve(lambda W0: W0*(1-WfW0(f_range,loiter_time)-We(W0))-Wpl-Wcrew, 60000)
     W0 = W0[0]
     print(f'Mtow:                         {round(W0/lb, 2)} kg')
-    print(f'Qde de Combustível:           {round(WfW0(f_range,loiter_time)*W0, 2)/lb} kg')
+    print(f'Qde de Combustível:           {round(WfW0(f_range,loiter_time)*W0/lb, 2)} kg')
     print(f'Peso Vazio:                   {round(We(W0)*W0/lb, 2)} kg')
     print(f'Carga Paga + Tripulacao:      {round((Wpl+Wcrew)/lb, 2)} kg') 
-    
-mission_estimation(
-    f_range=3200,
-    s_range=150,
-    LDmax=17,
-    sfc_cruize=0.642,
-    sfc_sea_level=0.42,
-    payload=1500,
-    crew=2,
-    person_avg=75,
-    loiter_time=20.0,
-    Mach=0.8,
-    class_airplane='JetTransport'
-    )
 
-'''
-Valores professor
-R = 3200 *3280.8399 
-LDmax = 16
-E = 45 *60
-Ecruseiro = 45 *60
-M = 850/3.6/342
-sfc_cruize = 0.52/3600 # 1/s
-SFCloi = 0.4/3600  # 1/seg 
-V  = 850*0.911344415 # ft/s
-payload = 1000
-qtp = 100
-crew = 7
-pmed =75
-bg = 15 
-'''
+    return W0/lb, np.array([W1W0, W2W1, W3W2(f_range), W4W3(loiter_time), W5W4, W6W5, W7W6, W8W7(loiter_time), W9W8]), WfW0(f_range,loiter_time), We(W0)
+
+def return_fuel_mass (airplane_mass:tuple, W0=None, Wd=None):
+    wo, vect, wfwo, wewo = airplane_mass    
+    if W0 != None:
+        wo = W0
+    if Wd != None:
+        wd = Wd
+    
+    wd = wewo*wo
+    acum = wo
+    wtot = [acum-wd]
+    for val in vect:
+        acum *= val 
+        wtot.append(acum-wd)
+
+    return np.array(wtot)
