@@ -1,5 +1,4 @@
 from scipy.optimize import fsolve
-from typing import Any
 import numpy as np
 
 
@@ -7,7 +6,6 @@ class unit:
     lb: float = 1 / 0.45359237   # lb/kg
     ft: float = 1 / 0.3048   # ft/m
     lbf: float = 1 / 4.44822162   # lbf/N
-
     kg: float = 0.45359237   # kg/lb
     m: float = 0.3048   # m/ft
     N: float = 4.44822162   # N/lbf
@@ -16,8 +14,8 @@ class unit:
 class aircraft_pre_select:
     def __init__(
         self,
-        first_range: float,  # m
-        second_range: float,  # m
+        first_range: float,  # km
+        second_range: float,  # km
         LDmax: float,  #
         sfc_cruize: float,  # g/(kN.S)
         sfc_sea_level: float,  # g/(kN.S)
@@ -29,9 +27,9 @@ class aircraft_pre_select:
         class_airplane='JetTransport',
     ) -> None:
 
-        self._f_range = first_range * unit.ft
+        self._f_range = first_range * 1000 * unit.ft
         # fts
-        self._s_range = second_range * unit.ft   # fts
+        self._s_range = second_range * 1000 * unit.ft   # fts
 
         self.LDmax = LDmax   # dimensionless
 
@@ -50,18 +48,18 @@ class aircraft_pre_select:
 
         self._mach = Mach
         self._sound_speed = 340 * unit.ft   # ft/s
-        self._v_cruize = self._mach * self.sound_speed   # ft/s
+        self._v_cruize = self._mach * self._sound_speed   # ft/s
 
         self.class_airplane = class_airplane
 
     # ======< parameter treatment >======
     @property
     def first_range(self) -> float:
-        return self._f_range * unit.m
+        return self._f_range * 1000 * unit.m
 
     @property
     def second_range(self) -> float:
-        return self._s_range * unit.m
+        return self._s_range * 1000 * unit.m
 
     @property
     def sfc_cruize(self) -> float:
@@ -96,12 +94,12 @@ class aircraft_pre_select:
         return self._v_cruize * unit.m   # m/s
 
     @first_range.setter
-    def first_range(self, meters: float) -> None:
-        self._f_range = meters * unit.ft
+    def first_range(self, kilometers: float) -> None:
+        self._f_range = kilometers * 1000 * unit.ft
 
     @second_range.setter
-    def second_range(self, meters: float) -> None:
-        self._s_range = meters * unit.ft
+    def second_range(self, kilometers: float) -> None:
+        self._s_range = kilometers * 1000 * unit.ft
 
     @sfc_cruize.setter
     def sfc_cruize(self, sfc_SI_unit: float) -> None:
@@ -156,7 +154,7 @@ class aircraft_pre_select:
         return wewo
 
     @staticmethod
-    def Raymer_Wf(fase: str) -> Any[callable, float]:
+    def Raymer_Wf(fase: str) -> any:
         coef = {
             'WuTo': 0.97,
             'Climb': 0.985,
@@ -172,6 +170,7 @@ class aircraft_pre_select:
 
     # ======< Estimation >======
     def mission_estimation(self, first_step: float = 27_000.0):
+        first_step *= unit.lb
 
         time_cruize = self._f_range / self._v_cruize  # s
         time_second_range = self._s_range / self._v_cruize   # s
@@ -236,12 +235,14 @@ class aircraft_pre_select:
             * (1 - WfW0(self._f_range, self._loiter_time) - We(W0))
             - Wpl
             - Wcrew,
-            first_step * unit.lb,
+            first_step,
         )
         W0 = W0[0]
 
         return (
             W0 * unit.kg,
+            WfW0(self._f_range, self._loiter_time) * W0 * unit.kg,
+            We(W0) * W0 * unit.kg,
             np.array(
                 [
                     W1W0,
@@ -255,6 +256,17 @@ class aircraft_pre_select:
                     W9W8,
                 ]
             ),
-            WfW0(self._f_range, self._loiter_time),
-            We(W0),
         )
+
+    # ======< Variables Overload >======
+
+    def __repr__(self) -> str:
+        values = self.mission_estimation()
+        repr = '+' + '-' * 16 + '+\n'
+        repr += '|' + 'W0  : ' + (f'{values[0] :_.0f} kg').center(10) + '|\n'
+        repr += '|' + 'Wf  : ' + (f'{values[1] :_.0f} kg').center(10) + '|\n'
+        repr += '|' + 'We  : ' + (f'{values[2] :_.0f} kg').center(10) + '|\n'
+        for i, Wn in enumerate(values[3]):
+            repr += '|' + f'W{i+1}W{i}: ' + (f'{Wn:.5f}').center(10) + '|\n'
+        repr += '+' + '-' * 16 + '+\n'
+        return repr
