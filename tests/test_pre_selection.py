@@ -9,34 +9,26 @@ airplane_New_York_to_Biggin_Hill = aircraft_pre_select(
     sfc_sea_level=12.0,
 )
 
-(
-    Wo,
-    Wf,
-    We,
-    state_vector,
-) = airplane_New_York_to_Biggin_Hill.mission_estimation()
-
-Wo, We, Wf, state_vector = (
-    np.round(Wo, 2),
-    np.round(We, 2),
-    np.round(Wf, 3),
-    np.round(state_vector, 3),
-)
-
 
 def test_airplane_New_York_to_Biggin_Hill_Wo():
+    Wo = round(airplane_New_York_to_Biggin_Hill.W0, 2)
     assert Wo == 13982.88, f'Wo is not correct!: {Wo}!=13982.88 kg'
 
 
 def test_airplane_New_York_to_Biggin_Hill_WfW0():
+    Wf = round(airplane_New_York_to_Biggin_Hill.Wf, 2)
     assert Wf == 4526.72, f'WfW0 is not correct!: {Wf}!=4526.72 kg'
 
 
 def test_airplane_New_York_to_Biggin_Hill_We():
+    We = round(airplane_New_York_to_Biggin_Hill.We, 2)
     assert We == 7671.16, f'We is not correct!: {We}!=7671.16 kg'
 
 
 def test_airplane_New_York_to_Biggin_Hill_state_vector():
+    state_vector = np.round(
+        airplane_New_York_to_Biggin_Hill.weight_fraction, 3
+    )
     state_vector_correct = np.array(
         [0.970, 0.980, 0.767, 0.991, 0.995, 0.980, 0.999, 0.991, 0.995]
     )

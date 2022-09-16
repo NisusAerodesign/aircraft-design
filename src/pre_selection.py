@@ -1,13 +1,14 @@
+from typing import Any, List, Tuple
 from scipy.optimize import fsolve
 import numpy as np
 
 
 class unit:
     lb: float = 1 / 0.45359237   # lb/kg
-    ft: float = 1 / 0.3048   # ft/m
+    ft: float = 1 / 0.30480000   # ft/m
     lbf: float = 1 / 4.44822162   # lbf/N
     kg: float = 0.45359237   # kg/lb
-    m: float = 0.3048   # m/ft
+    m: float = 0.30480000   # m/ft
     N: float = 4.44822162   # N/lbf
 
 
@@ -93,6 +94,31 @@ class aircraft_pre_select:
     def v_cruize(self) -> float:
         return self._v_cruize * unit.m   # m/s
 
+    @property
+    def W0(self) -> float:
+        resp, _, _, _ = self.__SI_mass_props__()
+        return resp
+
+    @property
+    def Wf(self) -> float:
+        _, resp, _, _ = self.__SI_mass_props__()
+        return resp
+
+    @property
+    def We(self) -> float:
+        _, _, resp, _ = self.__SI_mass_props__()
+        return resp
+
+    @property
+    def weight_fraction(self) -> np.array:
+        _, _, _, resp = self.__SI_mass_props__()
+        return resp
+
+    @property
+    def __imperial_mass_props__(self) -> Tuple[float, float, float, list]:
+        w0_kg, wf_kg, we_kg, wf = self.__SI_mass_props__()
+        return w0_kg * unit.lb, wf_kg * unit.lb, we_kg * unit.lb, wf
+
     @first_range.setter
     def first_range(self, kilometers: float) -> None:
         self._f_range = kilometers * 1000 * unit.ft
@@ -169,7 +195,7 @@ class aircraft_pre_select:
         return wf
 
     # ======< Estimation >======
-    def mission_estimation(self, first_step: float = 27_000.0):
+    def __SI_mass_props__(self, first_step: float = 27_000.0):
         first_step *= unit.lb
 
         time_cruize = self._f_range / self._v_cruize  # s
@@ -261,7 +287,7 @@ class aircraft_pre_select:
     # ======< Variables Overload >======
 
     def __repr__(self) -> str:
-        values = self.mission_estimation()
+        values = self.__SI_mass_props__()
         repr = '+' + '-' * 16 + '+\n'
         repr += '|' + 'W0  : ' + (f'{values[0] :_.0f} kg').center(10) + '|\n'
         repr += '|' + 'Wf  : ' + (f'{values[1] :_.0f} kg').center(10) + '|\n'
