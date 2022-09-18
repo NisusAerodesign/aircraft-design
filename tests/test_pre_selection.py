@@ -1,11 +1,12 @@
 import numpy as np
+
 from src.pre_selection import *
 
 airplane_New_York_to_Biggin_Hill = aircraft_pre_select(
     first_range=5542.0,
     second_range=19.0,
     LDmax=15.8,
-    sfc_cruize=18.2,
+    sfc_cruise=18.2,
     sfc_sea_level=12.0,
 )
 
@@ -37,20 +38,20 @@ def test_airplane_New_York_to_Biggin_Hill_state_vector():
     ), f'State Vector is not correct!: {state_vector}!={state_vector_correct}'
 
 
-def test_change_mach_to_affect_v_cruize():
+def test_change_mach_to_affect_v_cruise():
     plane = airplane_New_York_to_Biggin_Hill
     plane.Mach = 0.5
     assert (
-        plane.v_cruize == plane.Mach * plane.sound_speed
-    ), f'v_cruize is not correct!: {plane.v_cruize}!={plane.Mach*plane.sound_speed}'
+        plane.v_cruise == plane.Mach * plane.sound_speed
+    ), f'v_cruise is not correct!: {plane.v_cruise}!={plane.Mach*plane.sound_speed}'
 
 
-def test_change_sound_speed_to_affect_v_cruize():
+def test_change_sound_speed_to_affect_v_cruise():
     plane = airplane_New_York_to_Biggin_Hill
     plane.sound_speed = 200
     assert (
-        plane.v_cruize == plane.Mach * plane.sound_speed
-    ), f'v_cruize is not correct!: {plane.v_cruize}!={plane.Mach*plane.sound_speed}'
+        plane.v_cruise == plane.Mach * plane.sound_speed
+    ), f'v_cruise is not correct!: {plane.v_cruise}!={plane.Mach*plane.sound_speed}'
 
 
 def test_change_fist_range():

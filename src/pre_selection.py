@@ -1,15 +1,19 @@
 from typing import Any, List, Tuple
-from scipy.optimize import fsolve
+
 import numpy as np
+from scipy.optimize import fsolve
 
 
 class unit:
     lb: float = 1 / 0.45359237   # lb/kg
     ft: float = 1 / 0.30480000   # ft/m
     lbf: float = 1 / 4.44822162   # lbf/N
+    hp: float = 1 / 745.69987200   # hp/W
+
     kg: float = 0.45359237   # kg/lb
     m: float = 0.30480000   # m/ft
     N: float = 4.44822162   # N/lbf
+    W: float = 745.69987200   # W/hp
 
 
 class aircraft_pre_select:
@@ -18,7 +22,7 @@ class aircraft_pre_select:
         first_range: float,  # km
         second_range: float,  # km
         LDmax: float,  #
-        sfc_cruize: float,  # g/(kN.S)
+        sfc_cruise: float,  # g/(kN.S)
         sfc_sea_level: float,  # g/(kN.S)
         payload: float = 1500.0,  # Kg
         crew: float = 3.0,  # Number of people
@@ -28,14 +32,13 @@ class aircraft_pre_select:
         class_airplane='JetTransport',
     ) -> None:
 
-        self._f_range = first_range * 1000 * unit.ft
-        # fts
+        self._f_range = first_range * 1000 * unit.ft   # fts
         self._s_range = second_range * 1000 * unit.ft   # fts
 
         self.LDmax = LDmax   # dimensionless
 
-        self._sfc_cruize = (
-            sfc_cruize * 1e-6 * unit.lb / unit.lbf
+        self._sfc_cruise = (
+            sfc_cruise * 1e-6 * unit.lb / unit.lbf
         )   # lb/(lbf.s)
         self._sfc_sea_level = (
             sfc_sea_level * 1e-6 * unit.lb / unit.lbf
@@ -49,7 +52,7 @@ class aircraft_pre_select:
 
         self._mach = Mach
         self._sound_speed = 340 * unit.ft   # ft/s
-        self._v_cruize = self._mach * self._sound_speed   # ft/s
+        self._v_cruise = self._mach * self._sound_speed   # ft/s
 
         self.class_airplane = class_airplane
 
@@ -63,8 +66,8 @@ class aircraft_pre_select:
         return self._s_range * 1000 * unit.m
 
     @property
-    def sfc_cruize(self) -> float:
-        return self._sfc_cruize * 1e6 * unit.kg / unit.N   # g/(kN.S)
+    def sfc_cruise(self) -> float:
+        return self._sfc_cruise * 1e6 * unit.kg / unit.N   # g/(kN.S)
 
     @property
     def sfc_sea_level(self) -> float:
@@ -91,8 +94,8 @@ class aircraft_pre_select:
         return self._sound_speed * unit.m   # m/s
 
     @property
-    def v_cruize(self) -> float:
-        return self._v_cruize * unit.m   # m/s
+    def v_cruise(self) -> float:
+        return self._v_cruise * unit.m   # m/s
 
     @property
     def W0(self) -> float:
@@ -127,9 +130,9 @@ class aircraft_pre_select:
     def second_range(self, kilometers: float) -> None:
         self._s_range = kilometers * 1000 * unit.ft
 
-    @sfc_cruize.setter
-    def sfc_cruize(self, sfc_SI_unit: float) -> None:
-        self._sfc_cruize = sfc_SI_unit * 1e-6 * unit.lb / unit.lbf
+    @sfc_cruise.setter
+    def sfc_cruise(self, sfc_SI_unit: float) -> None:
+        self._sfc_cruise = sfc_SI_unit * 1e-6 * unit.lb / unit.lbf
 
     @sfc_sea_level.setter
     def sfc_sea_level(self, sfc_SI_unit: float) -> None:
@@ -150,12 +153,12 @@ class aircraft_pre_select:
     @Mach.setter
     def Mach(self, mach_number: float) -> None:
         self._mach = mach_number
-        self._v_cruize = self._mach * self._sound_speed
+        self._v_cruise = self._mach * self._sound_speed
 
     @sound_speed.setter
     def sound_speed(self, speed_SI: float) -> None:
         self._sound_speed = speed_SI * unit.ft   # ft/s
-        self._v_cruize = self._mach * self._sound_speed
+        self._v_cruise = self._mach * self._sound_speed
 
     # ======< Raymer functions definition >======
     @staticmethod
@@ -194,12 +197,34 @@ class aircraft_pre_select:
         wf = coef[fase]
         return wf
 
+    @staticmethod
+    def Raymer_T_W0(category: str) -> callable:
+        coef = {
+            'JetTrainer': [0.488, 0.728],
+            'JetFighterDogfigther': [0.648, 0.594],
+            'JetTrainerOther': [0.514, 0.141],
+            'MilitaryCargo': [0.244, 0.341],
+            'JetTransport': [0.267, 0.363],
+            'Sailpowerd': [0.043, 0.0],
+            'HBmetal': [0.005, 0.57],
+            'HBcomp': [0.004, 0.57],
+            'GAsingle': [0.025, 0.22],
+            'GAtwin': [0.036, 0.32],
+            'Agricultural': [0.009, 0.50],
+            '2TurboP': [0.013, 0.5],
+            'FlyBoat': [0.030, 0.23],
+        }
+        a, C = coef[category]
+
+        return lambda x: a * (x**C)
+
     # ======< Estimation >======
-    def __SI_mass_props__(self, first_step: float = 27_000.0):
+    def __SI_mass_props__(
+        self, first_step: float = 27_000.0
+    ) -> Tuple[float, float, float, np.array]:
         first_step *= unit.lb
 
-        time_cruize = self._f_range / self._v_cruize  # s
-        time_second_range = self._s_range / self._v_cruize   # s
+        time_second_range = self._s_range / self._v_cruise   # s
 
         We = self.Raymer_We(self.class_airplane)
         ##  W1/W0 -> Warmup and Take Off
@@ -212,7 +237,7 @@ class aircraft_pre_select:
         ## W3/W2 -> Cruise
         W3W2f = self.Raymer_Wf('Cruise')
         W3W2 = lambda x: W3W2f(
-            x, self._sfc_cruize, self.LDmax * 0.866, self._v_cruize
+            x, self._sfc_cruise, self.LDmax * 0.866, self._v_cruise
         )
 
         ## W4/W3 -> Loiter 1
@@ -227,7 +252,7 @@ class aircraft_pre_select:
 
         ## W7/W6 -> Cruseiro 2 - tempo
         W7W6 = self.Raymer_Wf('Loiter')
-        W7W6 = W7W6(time_second_range, self._sfc_cruize, self.LDmax * 0.866)
+        W7W6 = W7W6(time_second_range, self._sfc_cruise, self.LDmax * 0.866)
 
         ## W8/W7 -> Loiter
         W8W7 = W4W3
@@ -283,6 +308,53 @@ class aircraft_pre_select:
                 ]
             ),
         )
+
+    def __restriction_diagram__(self, Sl: float):
+        # Landing conditions
+        sigma = 1.0
+        W_vec = self.weight_fraction
+        WlW0 = np.prod(W_vec[:4])
+
+        CLmax = 1.8
+        CLl = CLmax / (1.3**2)
+
+        WSpouso = (2 / 3) * Sl * sigma * CLl / (79.4 * WlW0)
+
+        # Takeoff Distance conditions
+        CLto = CLmax / (1.1**2)
+        sigma = 0.8
+        WtoW0 = W_vec[0]
+
+        def TWto(W0S):
+            resp = (
+                WtoW0
+                * 20.9
+                * (W0S * WtoW0)
+                / (
+                    sigma
+                    * CLto
+                    * (Sl - 69.6 * np.sqrt((W0S * WtoW0) / (sigma * CLto)))
+                )
+            )
+            return resp
+
+        # V_cruise condition
+        sigma = 0.7
+        rho = sigma * 0.00238
+        K = 0.03
+        CDmin = 0.03
+        WcruiseW0 = np.prod(W_vec[:2])
+        T_cruiseT0 = 0.3
+        v_cruise = self._v_cruise
+        q = rho * (v_cruise**2) / 2
+
+        def TW_cruise(W0S):
+            resp = (
+                q * CDmin / (W0S * WcruiseW0) + 0.0663 * (W0S * WcruiseW0) / q
+            ) * (WcruiseW0 / T_cruiseT0)
+            return resp
+        
+        return WSpouso, TWto, TW_cruise
 
     # ======< Variables Overload >======
 
