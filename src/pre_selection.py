@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
-from scipy.optimize import fsolve
+
 import numpy as np
+from scipy.optimize import fsolve
 
 
 class unit:
