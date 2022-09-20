@@ -313,7 +313,7 @@ class aircraft_pre_select:
         # Landing conditions
         sigma = 1.0
         W_vec = self.weight_fraction
-        WlW0 = 0.7 # np.prod(W_vec[:4])
+        WlW0 = np.prod(W_vec[:4])
 
         CLmax = 1.8
         CLl = CLmax / (1.3**2)
@@ -323,7 +323,7 @@ class aircraft_pre_select:
         # Takeoff Distance conditions
         CLto = CLmax / (1.1**2)
         sigma = 0.8
-        WtoW0 = 0.97 # W_vec[0]
+        WtoW0 = W_vec[0]
 
         def TWto(W0S):
             resp = (
@@ -343,9 +343,9 @@ class aircraft_pre_select:
         rho = sigma * 0.00238
         K = 0.03
         CDmin = 0.02
-        WcruiseW0 = 0.8 # np.prod(W_vec[:2])
+        WcruiseW0 = np.prod(W_vec[:2])
         T_cruiseT0 = 0.3
-        v_cruise = 1.68781*250# self._v_cruise
+        v_cruise = self._v_cruise
         q = rho * (v_cruise**2) / 2
 
         def TW_cruise(W0S):
