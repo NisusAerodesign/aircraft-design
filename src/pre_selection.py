@@ -351,7 +351,7 @@ class aircraft_pre_select:
         sigma = 0.7
         rho = sigma * 0.00238
         K = 0.03
-        CDmin = 0.03
+        CDmin = 0.02
         WcruiseW0 = np.prod(W_vec[:2])
         T_cruiseT0 = 0.3
         v_cruise = self._v_cruise
