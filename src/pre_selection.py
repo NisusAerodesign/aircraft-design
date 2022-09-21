@@ -309,7 +309,16 @@ class aircraft_pre_select:
             ),
         )
 
-    def __restriction_diagram__(self, Sl: float):
+    def __restriction_diagram__(self, Sl: float, CL_max: float):
+        
+        # V_stall condition
+        WS_stall = 0.5 * rho * v_stall * CL_max # <= que este valor
+        
+        # land distance condition
+        
+        
+        
+        '''
         # Landing conditions
         sigma = 1.0
         W_vec = self.weight_fraction
@@ -355,7 +364,7 @@ class aircraft_pre_select:
             return resp
         
         return WSpouso, TWto, TW_cruise
-
+        '''
     # ======< Variables Overload >======
 
     def __repr__(self) -> str:
