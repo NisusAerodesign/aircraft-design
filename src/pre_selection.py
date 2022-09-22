@@ -309,62 +309,77 @@ class aircraft_pre_select:
             ),
         )
 
-    def __restriction_diagram__(self, Sl: float, CL_max: float):
-        
+    def __restriction_diagram__(
+        self,
+        Sl: float,
+        V_vertical_kmph: float,
+        sigma_land: float = 0.9,
+        sigma_takeoff: float = 0.9,
+        CL_max: float = 1.8,
+        CD_min: float = 0.02,
+        V_stall_kmph: float = 113,
+        TcruiseT0: float = 0.3,
+    ):
+        """
+        Land -> Pq aplica a fração massica em Land? não percebo na equação
+        Takeoff -> Pq aplica as correções? não é em relação o W0?
+        CD_min PQ 0.02??
+        """
+        v_vertical = V_vertical_kmph * unit.ft / 3.6
+        v_stall = V_stall_kmph * unit.ft / 3.6
+
+        rho_sea_level = 0.0023769   # slug/ft3
+        rho_cruise_level = 0.7 * rho_sea_level
+
+        CD_min = 0.02   # CL_max/self.LDmax
         # V_stall condition
-        WS_stall = 0.5 * rho * v_stall * CL_max # <= que este valor
-        
+        WS_stall = (
+            0.5 * rho_cruise_level * (v_stall**2) * CL_max
+        )   # <= que este valor
+
         # land distance condition
-        
-        
-        
-        '''
-        # Landing conditions
-        sigma = 1.0
-        W_vec = self.weight_fraction
-        WlW0 = np.prod(W_vec[:4])
+        CL_max_land = CL_max / (1.3**2)   # Norma de aviação
+        WlW0 = np.prod(self.weight_fraction[:4])
 
-        CLmax = 1.8
-        CLl = CLmax / (1.3**2)
+        WS_land = (
+            (2 / 3) * Sl * sigma_land * CL_max_land / (79.4 * WlW0)
+        )   # <= este valor
 
-        WSpouso = (2 / 3) * Sl * sigma * CLl / (79.4 * WlW0)
+        # takeoff distance condition
+        CL_max_to = CL_max / (1.1**2)
+        WtoW0 = self.weight_fraction[0]
 
-        # Takeoff Distance conditions
-        CLto = CLmax / (1.1**2)
-        sigma = 0.8
-        WtoW0 = W_vec[0]
+        def TW_to(WS):   # >= este valor
+            WSc = WS * WtoW0
+            A = 20 * WSc
+            B = sigma_takeoff * CL_max_to
+            C = Sl - 69.6 * np.sqrt(WSc / (sigma_takeoff * CL_max_to))
+            return A / (B * C)
 
-        def TWto(W0S):
-            resp = (
-                WtoW0
-                * 20.9
-                * (W0S * WtoW0)
-                / (
-                    sigma
-                    * CLto
-                    * (Sl - 69.6 * np.sqrt((W0S * WtoW0) / (sigma * CLto)))
-                )
-            )
-            return resp
-
-        # V_cruise condition
-        sigma = 0.7
-        rho = sigma * 0.00238
+        # V_cruise condition ?? PORQUE??????
+        q = 0.5 * rho_cruise_level * (self._v_cruise**2)
         K = 0.03
-        CDmin = 0.02
-        WcruiseW0 = np.prod(W_vec[:2])
-        T_cruiseT0 = 0.3
-        v_cruise = self._v_cruise
-        q = rho * (v_cruise**2) / 2
 
-        def TW_cruise(W0S):
-            resp = (
-                q * CDmin / (W0S * WcruiseW0) + 0.0663 * (W0S * WcruiseW0) / q
-            ) * (WcruiseW0 / T_cruiseT0)
-            return resp
-        
-        return WSpouso, TWto, TW_cruise
-        '''
+        WcruiseW0 = np.prod(self.weight_fraction[:2])
+
+        def TW_cruise(WS):   # >= este valor
+            WSc = WS * WcruiseW0
+            A = q * CD_min / (WSc)
+            B = (K * WSc) / q   # 0.0663 * WSc * WcruiseW0/(q TcruiseT0)
+            return A + B
+
+        # Service Ceiling condition
+        k = 0.02   # WTF??
+
+        def TW_ceiling(WS):   # >= este valor
+            WSc = WS * WcruiseW0
+            A = np.sqrt(K / (3 * CD_min))
+            B = v_vertical / np.sqrt(2 * WSc * A / rho_sea_level)
+            C = 4 * np.sqrt(k * CD_min / 3)
+            return B + C
+
+        return WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling
+
     # ======< Variables Overload >======
 
     def __repr__(self) -> str:
