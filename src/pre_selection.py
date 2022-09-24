@@ -320,11 +320,6 @@ class aircraft_pre_select:
         V_stall_kmph: float = 113,
         TcruiseT0: float = 0.3,
     ):
-        """
-        Land -> Pq aplica a fração massica em Land? não percebo na equação
-        Takeoff -> Pq aplica as correções? não é em relação o W0?
-        CD_min PQ 0.02??
-        """
         v_vertical = V_vertical_kmph * unit.ft / 3.6
         v_stall = V_stall_kmph * unit.ft / 3.6
 
@@ -356,7 +351,7 @@ class aircraft_pre_select:
             C = Sl - 69.6 * np.sqrt(WSc / (sigma_takeoff * CL_max_to))
             return A / (B * C)
 
-        # V_cruise condition ?? PORQUE??????
+        # V_cruise condition
         q = 0.5 * rho_cruise_level * (self._v_cruise**2)
         K = 0.03
 
@@ -365,17 +360,16 @@ class aircraft_pre_select:
         def TW_cruise(WS):   # >= este valor
             WSc = WS * WcruiseW0
             A = q * CD_min / (WSc)
-            B = (K * WSc) / q   # 0.0663 * WSc * WcruiseW0/(q TcruiseT0)
-            return A + B
+            B = (K * WSc) / q  
+            return (A + B) * WcruiseW0/TcruiseT0
 
         # Service Ceiling condition
-        k = 0.02   # WTF??
 
         def TW_ceiling(WS):   # >= este valor
             WSc = WS * WcruiseW0
             A = np.sqrt(K / (3 * CD_min))
             B = v_vertical / np.sqrt(2 * WSc * A / rho_sea_level)
-            C = 4 * np.sqrt(k * CD_min / 3)
+            C = 4 * np.sqrt(K * CD_min / 3)
             return B + C
 
         return WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling
@@ -385,7 +379,7 @@ class aircraft_pre_select:
     def __repr__(self) -> str:
         values = self.__SI_mass_props__()
         repr = '+' + '-' * 16 + '+\n'
-        repr += '|' + 'W0  : ' + (f'{values[0] :_.0f} kg').center(10) + '|\n'
+        repr += '|' + 'W0  : ' + (f'{values[0] :_.0f} Kg').center(10) + '|\n'
         repr += '|' + 'Wf  : ' + (f'{values[1] :_.0f} kg').center(10) + '|\n'
         repr += '|' + 'We  : ' + (f'{values[2] :_.0f} kg').center(10) + '|\n'
         for i, Wn in enumerate(values[3]):
