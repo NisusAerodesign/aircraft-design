@@ -1,3 +1,5 @@
+from os import stat
+import re
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -24,10 +26,14 @@ class aircraft_pre_select:
         LDmax: float,  #
         sfc_cruise: float,  # g/(kN.S)
         sfc_sea_level: float,  # g/(kN.S)
+        b:float,  # m
+        S:float, # m2
         payload: float = 1500.0,  # Kg
         crew: float = 3.0,  # Number of people
         person_avg: float = 95.0,  # Kg
         loiter_time: float = 20.0,  # min
+        h_cruise:float = 11, # km
+        h_celling:float = 14, # km
         Mach: float = 0.8,  #
         class_airplane='JetTransport',
     ) -> None:
@@ -43,12 +49,18 @@ class aircraft_pre_select:
         self._sfc_sea_level = (
             sfc_sea_level * 1e-6 * unit.lb / unit.lbf
         )   # lb/(lbf.s)
+        
+        self._b = b*unit.ft
+        self._S = S*unit.ft**2
 
         self._payload = payload * unit.lb   # lb
         self.crew = crew
         self._person_avg = person_avg * unit.lb   # lb
 
         self._loiter_time = loiter_time * 60   # seg
+        
+        self._h_cruise = h_cruise*1000*unit.ft # fts
+        self._h_celling = h_celling*1000*unit.ft # fts
 
         self._mach = Mach
         self._sound_speed = 340 * unit.ft   # ft/s
@@ -73,6 +85,27 @@ class aircraft_pre_select:
     def sfc_sea_level(self) -> float:
         return self._sfc_sea_level * 1e6 * unit.kg / unit.N   # g/(kN.S)
 
+    @property
+    def b(self) -> float:
+        return self._b * unit.m
+    
+    @property
+    def S(self) ->float:
+        return self._S * unit.m
+    
+    @property
+    def chord(self) -> float:
+        return self._S/self._b * unit.m
+    
+    @property
+    def _chord_imperial(self) -> float:
+        return self._S/self._b
+    
+    @property
+    def _S_wetted(self) -> float:
+        A_wetted = (self.LDmax/15.5)**2
+        return self._b**2 / A_wetted
+    
     @property
     def payload(self) -> float:
         return self._payload * unit.kg
@@ -137,7 +170,7 @@ class aircraft_pre_select:
     @sfc_sea_level.setter
     def sfc_sea_level(self, sfc_SI_unit: float) -> None:
         self._sfc_sea_level = sfc_SI_unit * 1e-6 * unit.lb / unit.lbf
-
+    
     @payload.setter
     def payload(self, mass_kg: float) -> None:
         self._payload = mass_kg * unit.lb
@@ -160,6 +193,15 @@ class aircraft_pre_select:
         self._sound_speed = speed_SI * unit.ft   # ft/s
         self._v_cruise = self._mach * self._sound_speed
 
+    # ======< Climatic props >======
+    @staticmethod
+    def __rho_h_imperial__(H_feets:float):
+        h_m = H_feets*unit.m
+        T0 = 288.15 # °K
+        T = T0 - 0.0065*h_m # °K
+        rho = 1.225*(T/T0)**(-9.80665/(-0.0065*287.15) - 1)
+        return rho*unit.lb/(unit.ft**3)
+    
     # ======< Raymer functions definition >======
     @staticmethod
     def Raymer_We(category: str) -> callable:
@@ -312,24 +354,25 @@ class aircraft_pre_select:
     def __restriction_diagram__(
         self,
         Sl: float,
-        V_vertical_kmph: float,
+        V_vertical_kmph: float = 2,
         sigma_land: float = 0.9,
         sigma_takeoff: float = 0.9,
         CL_max: float = 1.8,
-        CD_min: float = 0.02,
         V_stall_kmph: float = 113,
-        TcruiseT0: float = 0.3,
+        TcruiseT0: float = 0.4,
+        rho_sea: float = 1.225,
     ):
         v_vertical = V_vertical_kmph * unit.ft / 3.6
         v_stall = V_stall_kmph * unit.ft / 3.6
 
-        rho_sea_level = 0.0023769   # slug/ft3
-        rho_cruise_level = 0.7 * rho_sea_level
-
-        CD_min = 0.02   # CL_max/self.LDmax
+        rho_sea_level = rho_sea*0.0019403203   # slug/ft3
+        rho_cruise = self.__rho_h_imperial__(self._h_cruise) / 32.174
+    
+        CD_min = 0.003*self._S_wetted/self._S   # CL_max/self.LDmax
         # V_stall condition
+        WstallW0 = np.prod(self.weight_fraction[:2])
         WS_stall = (
-            0.5 * rho_cruise_level * (v_stall**2) * CL_max
+            0.5 * 32.174049 * rho_sea_level * (v_stall**2) * CL_max * WstallW0
         )   # <= que este valor
 
         # land distance condition
@@ -352,8 +395,8 @@ class aircraft_pre_select:
             return A / (B * C)
 
         # V_cruise condition
-        q = 0.5 * rho_cruise_level * (self._v_cruise**2)
-        K = 0.03
+        q = 0.5 * rho_cruise * (self._v_cruise**2)
+        K = 1/(np.pi*self._b**2/self._S)
 
         WcruiseW0 = np.prod(self.weight_fraction[:2])
 
@@ -364,13 +407,15 @@ class aircraft_pre_select:
             return (A + B) * WcruiseW0/TcruiseT0
 
         # Service Ceiling condition
-
+        rho_celling = self.__rho_h_imperial__(self._h_celling)
+        WcellingW0 = np.prod(self.weight_fraction[:2])
+        
         def TW_ceiling(WS):   # >= este valor
             WSc = WS * WcruiseW0
             A = np.sqrt(K / (3 * CD_min))
-            B = v_vertical / np.sqrt(2 * WSc * A / rho_sea_level)
+            B = v_vertical / np.sqrt(2 * WSc * A / rho_celling)
             C = 4 * np.sqrt(K * CD_min / 3)
-            return B + C
+            return (B + C)/WcellingW0
 
         return WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling
 
