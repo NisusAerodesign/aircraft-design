@@ -355,10 +355,10 @@ class aircraft_pre_select:
         self,
         Sl: float,
         V_vertical_kmph: float = 2,
-        sigma_land: float = 1.0,
+        sigma_land: float = 0.9,
         sigma_takeoff: float = 0.9,
-        CL_max: float = 1.8,
-        V_stall_kmph: float = 113,
+        CL_max: float = 2.3,
+        V_stall_kmph: float = 260,
         TcruiseT0: float = 0.4,
         rho_sea: float = 1.225,
     ):
@@ -372,7 +372,7 @@ class aircraft_pre_select:
         # V_stall condition
         WstallW0 = np.prod(self.weight_fraction[:2])
         WS_stall = (
-            0.5 * 32.174049 * rho_sea_level * (v_stall**2) * CL_max * WstallW0
+            0.5 * rho_sea_level * (v_stall**2) * CL_max * WstallW0
         )   # <= que este valor
 
         # land distance condition
