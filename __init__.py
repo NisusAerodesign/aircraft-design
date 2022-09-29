@@ -85,7 +85,7 @@ WS_vector = np.linspace(43.6015, 56.926)
 plt.plot(WS_vector, (2*38.32)/(18*9.80665) + WS_vector*0, label='CF34-3B')
 
 
-plt.xlim(37,58)
+#plt.xlim(37,58)
 plt.ylim(0.28, 0.5)
 plt.legend()
 plt.grid(linestyle='dotted')

@@ -355,7 +355,7 @@ class aircraft_pre_select:
         self,
         Sl: float,
         V_vertical_kmph: float = 2,
-        sigma_land: float = 0.9,
+        sigma_land: float = 1.0,
         sigma_takeoff: float = 0.9,
         CL_max: float = 1.8,
         V_stall_kmph: float = 113,
