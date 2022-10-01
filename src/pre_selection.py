@@ -351,7 +351,7 @@ class aircraft_pre_select:
             ),
         )
 
-    def __restriction_diagram__(
+    def restriction_diagram(
         self,
         Range_takeoff: float,
         Range_land: float,
