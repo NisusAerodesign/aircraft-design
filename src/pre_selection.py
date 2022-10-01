@@ -377,7 +377,7 @@ class aircraft_pre_select:
         )   # <= que este valor
 
         # land distance condition
-        CL_max_land = CL_max 
+        CL_max_land = CL_max
         WlW0 = np.prod(self.weight_fraction[:4])
 
         WS_land = (
