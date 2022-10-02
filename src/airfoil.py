@@ -1,8 +1,10 @@
 #%% Library
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
+
 
 #%% functions
 def airfoil_points(airfoil_path: Path) -> float:
@@ -30,3 +32,12 @@ def airfoil_area(
     area = trapz(chord * yinf, chord * x) - trapz(chord * ysup, chord * x)
 
     return abs(area)
+
+
+#%% Import data
+def load_xfoil_data(Data: Path):
+
+    alpha, Cl, Cd, *_ = np.loadtxt(Data, skiprows=11, unpack=True)
+    LD = np.array([cl / cd for cl, cd in zip(Cl, Cd)])
+
+    return alpha, Cl, Cd, LD
