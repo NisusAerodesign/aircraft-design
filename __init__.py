@@ -1,19 +1,22 @@
+#%% Librarys
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 from src.airfoil import *
 from src.pre_selection import *
 
+#%% plot areas
 def plot_areas(airfoil: Path, airfoil_name, colour, ax, xatk=0.1, xfug=0.7):
     fs, fi = airfoil_points(airfoil)
     print(
-        f'Área do aerofólio {airfoil_name} = {round(airfoil_area(airfoil), 5)} m²'
+        f'Área do aerofólio {airfoil_name} = {round(airfoil_area(airfoil)[0], 5)} m²'
     )
 
     x = np.linspace(0, 1, 1_000)
     xarea = np.linspace(xatk, xfug, 1_000)
 
-    Atot = airfoil_area(airfoil, initial_point=0, final_point=1)
-    Aliq = airfoil_area(airfoil, initial_point=xatk, final_point=xfug)
+    Atot,_ = airfoil_area(airfoil, initial_point=0, final_point=1)
+    Aliq,_ = airfoil_area(airfoil, initial_point=xatk, final_point=xfug)
     ax.plot(
         x, fs(x), f'{colour}--', alpha=0.6)
     ax.plot(x, fi(x), f'{colour}--', alpha=0.6)
@@ -72,3 +75,18 @@ plt.ylabel('L/D')
 plt.xlabel(r'alpha')
 plt.title('Comparação do L/D para Re = 42.000.000')
 plt.show()
+#%% test wing volume
+PATH_DATA = Path() / 'data'
+airfoil = list(PATH_DATA.glob('*.dat'))
+airfoil = sorted(airfoil, key=lambda x:x.name)
+print([i.name for i in airfoil])
+for air in airfoil[:-1]:
+    area, k = airfoil_area(air, chord = 2.458, 
+                    initial_point=0.1, final_point=0.7)
+    print(f'___{air.name}___')
+    print(f'Area\t: {area} m²')
+    print(f'k\t: {k}')
+    print(f'Volume\t: {area*20} m³')
+    volume = wing_volume(wingarea=49.16, mean_chord=2.458, k=k)
+    print('\n')
+# %%
