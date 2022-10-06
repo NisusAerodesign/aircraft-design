@@ -9,12 +9,13 @@ class unit:
     ft: float = 1 / 0.30480000   # ft/m
     lbf: float = 1 / 4.44822162   # lbf/N
     hp: float = 1 / 745.69987200   # hp/W
+    slug_per_ft3: float = 1 / 515.2381961366   # (slug/ft3)/(kg/m3)
 
     kg: float = 0.45359237   # kg/lb
     m: float = 0.30480000   # m/ft
     N: float = 4.44822162   # N/lbf
     W: float = 745.69987200   # W/hp
-
+    kg_per_m3: float = 515.2381961366   # (kg/m3)/(slug/ft3)
     g: float = 9.806650010448807   # m/s
 
 
@@ -71,6 +72,8 @@ class aircraft_selection:
         self._We = 0
         self._Wf = 0
         self._weight_fraction = 0
+
+        self._S_wetted = 0   # m2
 
         # === Optional PARAMS ===
         self._T_W0 = None
@@ -270,12 +273,12 @@ class aircraft_selection:
         self._class_airplane = airplane_class
         self.__has_modified__ = True
 
-    @wing_load
+    @wing_load.setter
     def wing_load(self, W0_S: float):
         self._W0_S = W0_S
         self.__has_modified__ = True
 
-    @thrust_to_weight_ratio
+    @thrust_to_weight_ratio.setter
     def thrust_to_weight_ratio(self, T_W0: float):
         self._T_W0 = T_W0
         self.__has_modified__ = True
@@ -449,6 +452,10 @@ class aircraft_selection:
                 self.__T_per_h__(self._h_cruise)
             )
 
+            # S_wett
+            A_wetted = (self._LDmax / 15.5) ** 2
+            self._S_wetted = self._b**2 / A_wetted
+
             # Update v cruise
             self._v_cruise = self._mach * self._sound_speed
 
@@ -464,7 +471,103 @@ class aircraft_selection:
         else:
             pass
 
-        # ======< Variables Overload >======
+    def restriction_diagram(
+        self,
+        Range_takeoff: float,
+        Range_land: float,
+        CL_max: float,  # depends if it has flaps
+        rho_sea: float = 1.225,  # kg/m^3
+        sigma_land: float = 0.9,  # ratio of rho_air/rho_sea_level
+        sigma_takeoff: float = 0.9,  # ratio of rho_air/rho_sea_level
+        TcruiseT0: float = 0.3,  # avg Tcruise/T0
+        V_stall_kmph: float = 113,  # FAR 23 km/h -> just for comercial planes
+        V_vertical_kmph: float = 2,  # km/h
+        CL_stall_per_CL_max: float = 1,  # CL_max_stall/CL_max to fix CL in stall
+        CL_land_per_CL_max: float = 1,  # CL_max_land/CL_max to fix land CL
+        CL_takeoff_per_CL_max: float = 1,  # CL_max_takeoff/CL_max to fix takeoff CL
+    ):
+        self.__param_computate__()
+
+        v_vertical = V_vertical_kmph / 3.6
+        v_stall = V_stall_kmph / 3.6
+
+        rho_sea_level = rho_sea   # kg/m^3
+        rho_cruise = rho_sea * (
+            self.__rho_per_h__(self._h_cruise) / self.__rho_per_h__(0)
+        )
+
+        CD_min = 0.003 * self._S_wetted / self._S   # CL_max/self.LDmax
+
+        # V_stall condition
+        CL_max_stall = CL_max * CL_stall_per_CL_max
+        WstallW0 = np.prod(self._weight_fraction[:2])
+        WS_stall = (
+            0.5 * rho_sea_level * (v_stall**2) * CL_max_stall * WstallW0
+        )   # <= que este valor
+
+        # land distance condition
+        CL_max_land = CL_max * CL_land_per_CL_max
+        WlW0 = np.prod(self._weight_fraction[:4])
+
+        WS_land = (
+            unit.N
+            * (unit.ft**3)  # = (N/lbf)*(ft^3/m^3)
+            * (2 / 3)
+            * Range_land
+            * sigma_land
+            * CL_max_land
+            / (79.4 * WlW0)
+        )   # <= este valor
+
+        # takeoff distance condition
+        CL_max_to = CL_max * CL_takeoff_per_CL_max
+        WtoW0 = self._weight_fraction[0]
+
+        def TW_to(WS):   # >= este valor, WS [N/m^2]
+            WSc = WS * WtoW0 * (unit.lbf / (unit.ft**2))
+            A = 20 * WSc
+            B = sigma_takeoff * CL_max_to
+            C = Range_takeoff * unit.ft - 69.6 * np.sqrt(
+                WSc / (sigma_takeoff * CL_max_to)
+            )
+            return A / (B * C)
+
+        # V_cruise condition
+        q = 0.5 * rho_cruise * (self._v_cruise**2)   # N/m^2
+        K = 1 / (np.pi * self._b**2 / self._S)   # dimensionless
+
+        WcruiseW0 = np.prod(self._weight_fraction[:2])
+
+        def TW_cruise(WS):   # >= este valor
+            WSc = WS * WcruiseW0 * (unit.lbf / (unit.ft**2))
+            q_imperial = q * unit.lbf / (unit.ft**2)
+            A = q_imperial * CD_min / (WSc)
+            B = (K * WSc) / (q_imperial)
+            return (A + B) * WcruiseW0 / TcruiseT0
+
+        # Service Ceiling condition
+        rho_celling = (
+            rho_sea
+            * self.__rho_per_h__(self._h_celling)
+            / self.__rho_per_h__(0)
+        )
+        WcellingW0 = np.prod(self._weight_fraction[:2])
+
+        def TW_ceiling(WS):   # >= este valor
+            WSc = (
+                WS * WcruiseW0 * (unit.lbf / (unit.ft**2))
+            )   # N/m^2 to lbf/ft^2
+            v_v = v_vertical * unit.ft   # m/s to ft/s
+            rho_cell = rho_celling * unit.slug_per_ft3   # kg/m^3 to slug/ft^3
+
+            A = np.sqrt(K / (3 * CD_min))
+            B = v_v / np.sqrt(2 * WSc * A / rho_cell)
+            C = 4 * np.sqrt(K * CD_min / 3)
+            return (B + C) / WcellingW0
+
+        return WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling
+
+    # ======< Variables Overload >======
 
     def __repr__(self) -> str:
         repr = '+' + '-' * 16 + '+\n'
