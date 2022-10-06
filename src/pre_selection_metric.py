@@ -335,6 +335,22 @@ class aircraft_selection:
         return wewo
 
     @staticmethod
+    def Raymer_We_6_1(catergory:str) -> callable:
+        coefs = {
+            'Jet trainer' : [0, 4.28, -0.1, 0.1, 0.2, -0.24, 0.11],
+            'Jet fighter' : [-0.02, 2.16, -0.10, 0.2, 0.04, -0.1, 0.08],
+            'Military Cargo/bomber' : [0.07, 1.71, -0.1, 0.1, 0.06, -0.1, 0.05],
+            'Jet transport' : [0.32, 0.66, -0.13, 0.3, 0.06, -0.05, 0.05],
+        }
+        a, b, C1, C2, C3, C4, C5 = coefs[catergory]
+        def We_W0( W0, A, T_W0, W0_S, M, Kvs):
+            P1 = b*((W0*unit.lb)**C1)*(A**C2)*(T_W0**C3)
+            P2 = ((W0_S*unit.lb/(unit.ft**2))**C4)*(M**C5)
+            return (a+P1*P2)*Kvs
+        return We_W0
+
+
+    @staticmethod
     def Raymer_Wf(fase: str) -> any:
         coef = {
             'WuTo': 0.97,
@@ -354,13 +370,14 @@ class aircraft_selection:
     # ======< Calculation >======
     def __SI_mass_props__(
         self,
+        We: callable,
         first_step: float = 20_000.0,
     ) -> Tuple[float, float, float, np.array]:
         # first_step *= unit.lb
 
         time_second_range = self._s_range / self._v_cruise   # s
 
-        We = self.Raymer_We(self._class_airplane)
+        # self.Raymer_We(self._class_airplane)
         ##  W1/W0 -> Warmup and Take Off
         W1W0 = self.Raymer_Wf('WuTo')
 
@@ -459,13 +476,17 @@ class aircraft_selection:
             # Update v cruise
             self._v_cruise = self._mach * self._sound_speed
 
-            # Update mass props
-            W0, Wf, We, n = self.__SI_mass_props__()
-            self._W0, self._Wf, self._We, self._weight_fraction = W0, Wf, We, n
 
             # Veriry if exists W0/S and T/W0 to make better estimation
-            if self._T_W0 != None and self._W0_S != None:
-                ...
+            if self._T_W0 == None and self._W0_S == None:
+                # Update mass props
+                W0, Wf, We, n = self.__SI_mass_props__(self.Raymer_We(self._class_airplane))
+                self._W0, self._Wf, self._We, self._weight_fraction = W0, Wf, We, n
+            elif self._T_W0 != None and self._W0_S != None:
+                W0, Wf, We, n = self.__SI_mass_props__(self.Raymer_We_6_1(self._class_airplane))
+                self._W0, self._Wf, self._We, self._weight_fraction = W0, Wf, We, n
+            else:
+                assert False, 'Error: T/W0 and W0/S is not defined!'
             # Stop correction loop
             self.__has_modified__ = False
         else:
