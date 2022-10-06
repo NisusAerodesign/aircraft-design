@@ -5,9 +5,21 @@ from src.pre_selection import *
 airplane_New_York_to_Biggin_Hill = aircraft_pre_select(
     first_range=5542.0,
     second_range=19.0,
+    b=20,
+    S=49,
     LDmax=15.8,
     sfc_cruise=18.2,
     sfc_sea_level=12.0,
+)
+
+b = aircraft_selection(
+    first_range=5542.0,
+    second_range=19.0,
+    LDmax=15.8,
+    sfc_cruise=18.2,
+    sfc_sea_level=12.0,
+    wing_spain=20,
+    wing_area=49,
 )
 
 
