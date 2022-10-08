@@ -22,6 +22,7 @@ class unit:
 class aircraft_selection:
     def __init__(
         self,
+        code_name: str,
         first_range: float,  # km
         second_range: float,  # km
         LDmax: float,  #
@@ -38,6 +39,7 @@ class aircraft_selection:
         Mach: float = 0.8,  #
         class_airplane='JetTransport',
     ) -> None:
+        self._code_name = code_name.upper()
 
         self._f_range = first_range * 1000  # m
         self._s_range = second_range * 1000   # m
@@ -74,12 +76,16 @@ class aircraft_selection:
         self._weight_fraction = 0
 
         self._S_wetted = 0   # m2
-
+        self._A = 0
         # === Optional PARAMS ===
         self._T_W0 = None
         self._W0_S = None
 
     # ======< parameter treatment: Getters >======
+    @property
+    def code_name(self) -> float:
+        return self._code_name
+
     @property
     def first_range(self) -> float:
         self.__param_computate__()
@@ -88,7 +94,7 @@ class aircraft_selection:
     @property
     def second_range(self) -> float:
         self.__param_computate__()
-        return self.second_range / 1000   # km
+        return self._s_range / 1000   # km
 
     @property
     def LD_max(self) -> float:
@@ -198,6 +204,10 @@ class aircraft_selection:
         return self._T_W0
 
     # ======< parameter treatment: Setters >======
+    @code_name.setter
+    def code_name(self, codename: str):
+        self._code_name = codename.upper()
+
     @first_range.setter
     def first_range(self, kilometers: float):
         self._f_range = kilometers * 1000   # km
@@ -311,7 +321,7 @@ class aircraft_selection:
         gamma=1.4,  # Dimensionless
         R=287.15,  # J/(kg °K)
     ):
-        return (gamma * R * T) ** 0.5
+        return 340#(gamma * R * T) ** 0.5
 
     @staticmethod
     def Raymer_We(category: str) -> callable:
@@ -335,20 +345,28 @@ class aircraft_selection:
         return wewo
 
     @staticmethod
-    def Raymer_We_6_1(catergory:str) -> callable:
+    def Raymer_We_6_1(
+        catergory: str,
+        A: float,
+        T_W0: float,
+        W0_S: float,
+        M: float,
+        Kvs: float = 1.04,
+    ) -> callable:
         coefs = {
-            'Jet trainer' : [0, 4.28, -0.1, 0.1, 0.2, -0.24, 0.11],
-            'Jet fighter' : [-0.02, 2.16, -0.10, 0.2, 0.04, -0.1, 0.08],
-            'Military Cargo/bomber' : [0.07, 1.71, -0.1, 0.1, 0.06, -0.1, 0.05],
-            'Jet transport' : [0.32, 0.66, -0.13, 0.3, 0.06, -0.05, 0.05],
+            'JetTrainer': [0, 4.28, -0.1, 0.1, 0.2, -0.24, 0.11],
+            'JetFighter': [-0.02, 2.16, -0.10, 0.2, 0.04, -0.1, 0.08],
+            'MilitaryCargo': [0.07, 1.71, -0.1, 0.1, 0.06, -0.1, 0.05],
+            'JetTransport': [0.32, 0.66, -0.13, 0.3, 0.06, -0.05, 0.05],
         }
         a, b, C1, C2, C3, C4, C5 = coefs[catergory]
-        def We_W0( W0, A, T_W0, W0_S, M, Kvs):
-            P1 = b*((W0*unit.lb)**C1)*(A**C2)*(T_W0**C3)
-            P2 = ((W0_S*unit.lb/(unit.ft**2))**C4)*(M**C5)
-            return (a+P1*P2)*Kvs
-        return We_W0
 
+        def We_W0(W0):
+            P1 = b * ((W0 * unit.lb) ** C1) * (A**C2) * (T_W0**C3)
+            P2 = ((W0_S * unit.lb / (unit.ft**2)) ** C4) * (M**C5)
+            return (a + P1 * P2) * Kvs
+
+        return We_W0
 
     @staticmethod
     def Raymer_Wf(fase: str) -> any:
@@ -460,38 +478,6 @@ class aircraft_selection:
             ),
         )
 
-    # ======< Reload Function >======
-    def __param_computate__(self):
-
-        if self.__has_modified__:
-            # Update sound speed
-            self._sound_speed = self.__sound_speed_calculator__(
-                self.__T_per_h__(self._h_cruise)
-            )
-
-            # S_wett
-            A_wetted = (self._LDmax / 15.5) ** 2
-            self._S_wetted = self._b**2 / A_wetted
-
-            # Update v cruise
-            self._v_cruise = self._mach * self._sound_speed
-
-
-            # Veriry if exists W0/S and T/W0 to make better estimation
-            if self._T_W0 == None and self._W0_S == None:
-                # Update mass props
-                W0, Wf, We, n = self.__SI_mass_props__(self.Raymer_We(self._class_airplane))
-                self._W0, self._Wf, self._We, self._weight_fraction = W0, Wf, We, n
-            elif self._T_W0 != None and self._W0_S != None:
-                W0, Wf, We, n = self.__SI_mass_props__(self.Raymer_We_6_1(self._class_airplane))
-                self._W0, self._Wf, self._We, self._weight_fraction = W0, Wf, We, n
-            else:
-                assert False, 'Error: T/W0 and W0/S is not defined!'
-            # Stop correction loop
-            self.__has_modified__ = False
-        else:
-            pass
-
     def restriction_diagram(
         self,
         Range_takeoff: float,
@@ -591,7 +577,14 @@ class aircraft_selection:
     # ======< Variables Overload >======
 
     def __repr__(self) -> str:
-        repr = '+' + '-' * 16 + '+\n'
+        self.__param_computate__()
+
+        repr = f'Airplane: {self._code_name}' + '\n'
+        repr += f'first range: {self.first_range} km' + '\n'
+        repr += f'second range: {self.second_range} km' + '\n'
+        repr += f'Wing area: {round(self.wing_area,2)} m²' + '\n'
+        repr += f'Wing spain: {self.wing_span} m²' + '\n'
+        repr += '+' + '-' * 16 + '+\n'
         repr += '|' + 'W0  : ' + (f'{self.M_tow :_.0f} Kg').center(10) + '|\n'
         repr += (
             '|' + 'Wf  : ' + (f'{self.fuel_weigh :_.0f} kg').center(10) + '|\n'
@@ -606,3 +599,59 @@ class aircraft_selection:
             repr += '|' + f'W{i+1}W{i}: ' + (f'{Wn:.5f}').center(10) + '|\n'
         repr += '+' + '-' * 16 + '+\n'
         return repr
+
+# ======< Reload Function >======
+    def __param_computate__(self):
+
+        if self.__has_modified__:
+            # Update sound speed
+            self._sound_speed = self.__sound_speed_calculator__(
+                self.__T_per_h__(self._h_cruise)
+            )
+
+            # S_wett
+            A_wetted = (self._LDmax / 15.5) ** 2
+            self._S_wetted = self._b**2 / A_wetted
+
+            # Update v cruise
+            self._v_cruise = self._mach * self._sound_speed
+
+            # Update aspect ratio
+            self._A = self._b**2 / self._S
+
+            # Veriry if exists W0/S and T/W0 to make better estimation
+            if self._T_W0 == None and self._W0_S == None:
+                # Update mass props
+                W0, Wf, We, n = self.__SI_mass_props__(
+                    self.Raymer_We(self._class_airplane)
+                )
+                self._W0, self._Wf, self._We, self._weight_fraction = (
+                    W0,
+                    Wf,
+                    We,
+                    n,
+                )
+            elif self._T_W0 != None and self._W0_S != None:
+                W0, Wf, We, n = self.__SI_mass_props__(
+                    self.Raymer_We_6_1(
+                        self._class_airplane,
+                        self._A,
+                        self._T_W0,
+                        self._W0_S,
+                        self._mach,
+                    )
+                )
+                self._W0, self._Wf, self._We, self._weight_fraction = (
+                    W0,
+                    Wf,
+                    We,
+                    n,
+                )
+                
+                self._S = self._W0*unit.g/self._W0_S
+            else:
+                assert False, 'Error: T/W0 and W0/S is not defined!'
+            # Stop correction loop
+            self.__has_modified__ = False
+        else:
+            pass

@@ -6,68 +6,75 @@ from src.airfoil import *
 from src.pre_selection_metric import *
 
 a = aircraft_selection(
+    'My airplane',
     first_range=6000.0,
     second_range=300.0,
     LDmax=15.8,
     sfc_cruise=18.2,
     sfc_sea_level=12.0,
     wing_spain=20.7,
-    wing_area=47.3,
+    wing_area=49,
 )
 
-WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling = a.restriction_diagram(
-    Range_takeoff=1000,
-    Range_land=900,
-    V_vertical_kmph=12,
-    sigma_land=0.9,
-    sigma_takeoff=0.9,
-    CL_max=2.5,
-    V_stall_kmph=190,
-    TcruiseT0=0.3,
-    rho_sea=1.225,
-)
-ptos = 1000
+print(a)
 
-WS_vector = np.linspace(2.400, 4.100, ptos)
+a.thrust_to_weight_ratio = 0.3807
+a.wing_load = 3591.0
 
-WS_fill = np.linspace(2400, WS_land, ptos)
-plt.fill_between(
-    WS_fill / 1000,
-    TW_cruise(WS_fill),
-    1,
-    alpha=0.3,
-    label='Região de interesse',
-)
+print(a)
+# WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling = a.restriction_diagram(
+#     Range_takeoff=1000,
+#     Range_land=900,
+#     V_vertical_kmph=12,
+#     sigma_land=0.9,
+#     sigma_takeoff=0.9,
+#     CL_max=2.5,
+#     V_stall_kmph=190,
+#     TcruiseT0=0.3,
+#     rho_sea=1.225,
+# )
+# ptos = 1000
 
-plt.plot(
-    WS_land / 1000 + WS_vector * 0,
-    np.linspace(0, 1, ptos),
-    'r',
-    label='Land Condition',
-)
+# WS_vector = np.linspace(2.400, 4.100, ptos)
 
-plt.plot(WS_vector, TW_to(WS_vector * 1000), 'g', label='TW takeoff')
+# WS_fill = np.linspace(2400, WS_land, ptos)
+# plt.fill_between(
+#     WS_fill / 1000,
+#     TW_cruise(WS_fill),
+#     1,
+#     alpha=0.3,
+#     label='Região de interesse',
+# )
 
-plt.plot(WS_vector, TW_cruise(WS_vector * 1000), 'b', label='TW cruise')
+# plt.plot(
+#     WS_land / 1000 + WS_vector * 0,
+#     np.linspace(0, 1, ptos),
+#     'r',
+#     label='Land Condition',
+# )
 
-plt.plot(WS_vector, TW_ceiling(WS_vector * 1000), 'y', label='TW ceiling')
+# plt.plot(WS_vector, TW_to(WS_vector * 1000), 'g', label='TW takeoff')
 
-plt.plot(
-    WS_stall / 1000 + WS_vector * 0,
-    np.linspace(0, 1, ptos),
-    'c',
-    label='WS stall',
-)
+# plt.plot(WS_vector, TW_cruise(WS_vector * 1000), 'b', label='TW cruise')
 
-plt.plot([3.94715], [0.26534], 'ko', label='Ponto ótimo')
-# plt.xlim(50, 90)
-# plt.ylim(0.2, 0.6)
-plt.legend()
-plt.grid(linestyle='dotted')
-plt.xlabel(r'W/S {kN/m²}')
-plt.ylabel('T/W0')
-plt.title('Diagrama de restrição')
-plt.show()
+# plt.plot(WS_vector, TW_ceiling(WS_vector * 1000), 'y', label='TW ceiling')
+
+# plt.plot(
+#     WS_stall / 1000 + WS_vector * 0,
+#     np.linspace(0, 1, ptos),
+#     'c',
+#     label='WS stall',
+# )
+
+# plt.plot([3.94715], [0.26534], 'ko', label='Ponto ótimo')
+# # plt.xlim(50, 90)
+# # plt.ylim(0.2, 0.6)
+# plt.legend()
+# plt.grid(linestyle='dotted')
+# plt.xlabel(r'W/S {kN/m²}')
+# plt.ylabel('T/W0')
+# plt.title('Diagrama de restrição')
+# plt.show()
 
 
 # #%% plot areas
