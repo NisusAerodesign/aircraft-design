@@ -479,7 +479,7 @@ class aircraft_selection_core:
             ),
         )
 
-    def __kwargs_of_RD__(self, **kwargs):   # RD = restriction_diagram
+    def __kwargs_of_RD__(self, **kwargs):   # RD = Constraint diagram
         possible_args = [
             'rho_sea',
             'sigma_land',
@@ -520,7 +520,7 @@ class aircraft_selection_core:
             # CL_max_takeoff/CL_max to fix takeoff CL
         return kwargs
 
-    def restriction_diagram(
+    def constraint_diagram(
         self,
         Range_takeoff: float,
         Range_land: float,

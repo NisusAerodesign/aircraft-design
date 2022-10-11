@@ -1,47 +1,60 @@
+from cProfile import label
 from dataclasses import dataclass
+from turtle import color
 from typing import Optional
 from src.pre_selection import *
 import matplotlib.pyplot as plt
 
+
 @dataclass
-class Plane():
+class Plane:
     name: str
     W0: float
     Wing_area: float
-    thrust: float # to all engines
+    thrust: float   # to all engines
     imperial_units: bool = False
+    color: Optional[str] = None
+
     def WS(self):
-        return self.W0/self.Wing_area
+        return self.W0 / self.Wing_area
+
     def TW(self):
         if self.imperial_units:
-            g = unit.g * unit.ft
-            return self.thrust/(self.W0*g)
+            return self.thrust / self.W0
         else:
-            return self.thrust/(self.W0*unit.g)
+            return self.thrust / (self.W0 * unit.g)
+
 
 @dataclass
-class Engine():
+class Engine:
     name: str
-    thrust: float # to single engine
+    thrust: float   # to single engine
+    number_of_engines: int
     imperial_units: bool = False
+    linestyle: Optional[str] = None
+    color: Optional[str] = None
+
 
 class aircraft_selection(aircraft_selection_core):
-    def plot_restriction_diagram(
+    def plot_constraint_diagram(
         self,
         Range_takeoff: float,
         Range_land: float,
         CL_max: float,  # depends if it has flaps
         imperial_units: bool = False,
         n_points: int = 1000,  # Resolution of the curve
-        **kwargs
+        bbox_to_anchor: Tuple[float] = (1.0, 1.0),
+        **kwargs,
     ):
+        self.__param_computate__()
+        
         (
             WS_stall,
             WS_land,
             TW_to,
             TW_cruise,
             TW_ceiling,
-        ) = self.restriction_diagram(
+        ) = self.constraint_diagram(
             Range_takeoff, Range_land, CL_max, imperial_units, **kwargs
         )
         # test_crosses = np.linspace(0, 10*max(WS_land, WS_stall), n_points)
@@ -101,13 +114,19 @@ class aircraft_selection(aircraft_selection_core):
         ax.set_ylim([min_tw, max_tw])
 
         ax.grid()
-        ax.legend()
-        ax.set_xlabel(r'W/S [N/m²]')
-        ax.set_ylabel(r'T/W')
+        
+        f.legend(bbox_to_anchor=bbox_to_anchor)
+        f.suptitle('Constraint diagram')
+        
+        if imperial_units:
+            ax.set_xlabel(r'W0/S [lb/ft²]')
+        else:
+            ax.set_xlabel(r'W0/S [N/m²]')
+        ax.set_ylabel(r'T/W0')
 
         return f, ax
 
-    def select_engine(
+    def plot_select_engine(
         self,
         Range_takeoff: float,
         Range_land: float,
@@ -116,28 +135,103 @@ class aircraft_selection(aircraft_selection_core):
         Planes: Optional[List[Plane]] = None,
         imperial_units: bool = False,
         n_points: int = 1000,  # Resolution of the curve
-        **kwargs
+        bbox_to_anchor: Tuple[float] = (1.0, 1.0),
+        **kwargs,
     ):
+        self.__param_computate__()
+        
         (
             WS_stall,
             WS_land,
             TW_to,
             TW_cruise,
             TW_ceiling,
-        ) = self.restriction_diagram(
+        ) = self.constraint_diagram(
             Range_takeoff,
             Range_land,
             CL_max,
             imperial_units,
-            n_points,
             **kwargs,
         )
         v = 0.6 * min(WS_land, WS_stall)
         smaller_ws = min(WS_land, WS_stall)
+        bigger_ws = max(WS_land, WS_stall)
         WS_to_fill = np.linspace(v, smaller_ws, n_points)
         TW_to_fill = np.max(
             [TW_to(WS_to_fill), TW_cruise(WS_to_fill), TW_ceiling(WS_to_fill)],
             axis=0,
         )
 
+        WS_vector = np.linspace(0.6 * smaller_ws, 1.1 * bigger_ws, n_points)
+
+        max_to = max(TW_to(WS_vector))
+        max_cruise = max(TW_cruise(WS_vector))
+        max_ceiling = max(TW_ceiling(WS_vector))
+
+        max_tw = 1.1 * max(max_to, max_cruise, max_ceiling)
+
         f, ax = plt.subplots()
+
+        ax.fill_between(
+            WS_to_fill,
+            TW_to_fill,
+            max_tw,
+            interpolate=True,
+            alpha=0.1,
+            label='zone of interest',
+            color='blue',
+        )
+        # Plot engines
+        for engine in Engines:
+            assert (
+                engine.imperial_units == imperial_units
+            ), 'Error: you cannot mix imperial and SI units!'
+            if engine.imperial_units:
+                TW = (engine.thrust * unit.N * engine.number_of_engines) / (
+                    self._W0 * unit.g
+                )
+                ax.plot(
+                    [WS_to_fill[0], WS_to_fill[-1]],
+                    [TW, TW],
+                    color=engine.color,
+                    linestyle=engine.linestyle,
+                    label=f'{engine.name} with {engine.number_of_engines} engines',
+                )
+            else:
+                TW = (
+                    engine.thrust
+                    * engine.number_of_engines
+                    / self._W0
+                    * unit.g
+                )
+                ax.plot(
+                    [WS_to_fill[0], WS_to_fill[-1]],
+                    [TW, TW],
+                    color=engine.color,
+                    linestyle=engine.linestyle,
+                    label=f'{engine.name} with {engine.number_of_engines} engines',
+                )
+        if not Planes == None:
+            for plane in Planes:
+                assert (
+                    plane.imperial_units == imperial_units
+                ), 'Error: you cannot mix imperial and SI units!'
+                if plane.imperial_units:
+                    ax.plot(
+                        [plane.WS()],
+                        [plane.TW()],
+                        'x',
+                        color=plane.color,
+                        label=f'{plane.name}',
+                    )
+        ax.set_ylabel('T/W0')
+        if imperial_units:
+            ax.set_xlabel('W0/S [lb/ft²]')
+        else:
+            ax.set_xlabel('W0/S [N/m²]')
+
+        ax.grid()
+        f.suptitle('Engine comparison')
+        f.legend(bbox_to_anchor=bbox_to_anchor) 
+        f.tight_layout() 
+        return f, ax
