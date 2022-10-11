@@ -1,7 +1,8 @@
 from typing import Any, List, Tuple
+from unittest import result
 
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 
 
 class unit:
@@ -9,198 +10,320 @@ class unit:
     ft: float = 1 / 0.30480000   # ft/m
     lbf: float = 1 / 4.44822162   # lbf/N
     hp: float = 1 / 745.69987200   # hp/W
+    slug_per_ft3: float = 1 / 515.2381961366   # (slug/ft3)/(kg/m3)
 
     kg: float = 0.45359237   # kg/lb
     m: float = 0.30480000   # m/ft
     N: float = 4.44822162   # N/lbf
     W: float = 745.69987200   # W/hp
+    kg_per_m3: float = 515.2381961366   # (kg/m3)/(slug/ft3)
+    g: float = 9.806650010448807   # m/s
 
 
-class aircraft_pre_select:
+class aircraft_selection_core:
     def __init__(
         self,
+        code_name: str,
         first_range: float,  # km
         second_range: float,  # km
         LDmax: float,  #
         sfc_cruise: float,  # g/(kN.S)
         sfc_sea_level: float,  # g/(kN.S)
-        b: float,  # m
-        S: float,  # m2
+        wing_spain: float,  # m
+        wing_area: float,  # m2
         payload: float = 1500.0,  # Kg
         crew: float = 3.0,  # Number of people
         person_avg: float = 95.0,  # Kg
         loiter_time: float = 20.0,  # min
-        h_cruise: float = 11,  # km
-        h_celling: float = 14,  # km
+        h_cruise: float = 11_000,  # m
+        h_celling: float = 15_000,  # m
         Mach: float = 0.8,  #
         class_airplane='JetTransport',
     ) -> None:
+        self._code_name = code_name.upper()
 
-        self._f_range = first_range * 1000 * unit.ft   # fts
-        self._s_range = second_range * 1000 * unit.ft   # fts
+        self._f_range = first_range * 1000  # m
+        self._s_range = second_range * 1000   # m
 
-        self.LDmax = LDmax   # dimensionless
+        self._LDmax = LDmax   # dimensionless
 
-        self._sfc_cruise = (
-            sfc_cruise * 1e-6 * unit.lb / unit.lbf
-        )   # lb/(lbf.s)
-        self._sfc_sea_level = (
-            sfc_sea_level * 1e-6 * unit.lb / unit.lbf
-        )   # lb/(lbf.s)
+        self._sfc_cruise = sfc_cruise * 1e-6   # kg/(N.s)
+        self._sfc_sea_level = sfc_sea_level * 1e-6   # kg/(N.s)
 
-        self._b = b * unit.ft
-        self._S = S * unit.ft**2
+        self._b = wing_spain   # m
+        self._S = wing_area   # m2
 
-        self._payload = payload * unit.lb   # lb
-        self.crew = crew
-        self._person_avg = person_avg * unit.lb   # lb
+        self._payload = payload   # kg
+        self._crew = crew
+        self._person_avg = person_avg   # kg
 
         self._loiter_time = loiter_time * 60   # seg
 
-        self._h_cruise = h_cruise * 1000 * unit.ft   # fts
-        self._h_celling = h_celling * 1000 * unit.ft   # fts
+        self._h_cruise = h_cruise   # m
+        self._h_celling = h_celling   # m
 
         self._mach = Mach
-        self._sound_speed = 340 * unit.ft   # ft/s
-        self._v_cruise = self._mach * self._sound_speed   # ft/s
 
-        self.class_airplane = class_airplane
+        self._class_airplane = class_airplane
 
-    # ======< parameter treatment >======
+        self.__has_modified__ = True
+
+        # === Need to computate ===
+        self._sound_speed = 0   # m/s
+        self._v_cruise = 0   # m/s
+        self._W0 = 0
+        self._We = 0
+        self._Wf = 0
+        self._weight_fraction = 0
+
+        self._S_wetted = 0   # m2
+        self._A = 0
+        # === Optional PARAMS ===
+        self._T_W0 = None
+        self._W0_S = None
+
+    # ======< parameter treatment: Getters >======
+    @property
+    def code_name(self) -> float:
+        return self._code_name
+
     @property
     def first_range(self) -> float:
-        return self._f_range * 1000 * unit.m
+        self.__param_computate__()
+        return self._f_range / 1000   # km
 
     @property
     def second_range(self) -> float:
-        return self._s_range * 1000 * unit.m
+        self.__param_computate__()
+        return self._s_range / 1000   # km
+
+    @property
+    def LD_max(self) -> float:
+        self.__param_computate__()
+        return self._LDmax   # dimensionless
 
     @property
     def sfc_cruise(self) -> float:
-        return self._sfc_cruise * 1e6 * unit.kg / unit.N   # g/(kN.S)
+        self.__param_computate__()
+        return self._sfc_cruise * 1e6   # g/(kN.s)
 
     @property
     def sfc_sea_level(self) -> float:
-        return self._sfc_sea_level * 1e6 * unit.kg / unit.N   # g/(kN.S)
+        self.__param_computate__()
+        return self._sfc_sea_level * 1e6   # g/(kN.s)
 
     @property
-    def b(self) -> float:
-        return self._b * unit.m
+    def wing_span(self) -> float:
+        self.__param_computate__()
+        return self._b   # m
 
     @property
-    def S(self) -> float:
-        return self._S * unit.m
-
-    @property
-    def chord(self) -> float:
-        return self._S / self._b * unit.m
-
-    @property
-    def _chord_imperial(self) -> float:
-        return self._S / self._b
-
-    @property
-    def _S_wetted(self) -> float:
-        A_wetted = (self.LDmax / 15.5) ** 2
-        return self._b**2 / A_wetted
+    def wing_area(self) -> float:
+        self.__param_computate__()
+        return self._S   # m2
 
     @property
     def payload(self) -> float:
-        return self._payload * unit.kg
+        self.__param_computate__()
+        return self._payload   # kg
 
     @property
-    def person_avg(self) -> float:
-        return self._person_avg * unit.kg
+    def crew(self) -> float:
+        self.__param_computate__()
+        return self._crew
+
+    @property
+    def person_avg_weigh(self) -> float:
+        self.__param_computate__()
+        return self._person_avg   # kg
 
     @property
     def loiter_time(self) -> float:
-        self._loiter_time / 60
+        self.__param_computate__()
+        return self._loiter_time / 60   # min
+
+    @property
+    def h_cruise(self) -> float:
+        self.__param_computate__()
+        return self._h_cruise  # m
+
+    @property
+    def h_celling(self) -> float:
+        self.__param_computate__()
+        return self._h_celling   # m
 
     @property
     def Mach(self) -> float:
+        self.__param_computate__()
         return self._mach
 
     @property
+    def class_airplane(self) -> float:
+        self.__param_computate__()
+        return self._class_airplane
+
+    @property
     def sound_speed(self) -> float:
-        return self._sound_speed * unit.m   # m/s
+        self.__param_computate__()
+        return self._sound_speed   # m/s
 
     @property
     def v_cruise(self) -> float:
-        return self._v_cruise * unit.m   # m/s
+        self.__param_computate__()
+        return self._v_cruise   # m/s
 
     @property
-    def W0(self) -> float:
-        resp, _, _, _ = self.__SI_mass_props__()
-        return resp
+    def M_tow(self) -> float:
+        self.__param_computate__()
+        return self._W0
 
     @property
-    def Wf(self) -> float:
-        _, resp, _, _ = self.__SI_mass_props__()
-        return resp
+    def empty_weigh(self) -> float:
+        self.__param_computate__()
+        return self._We
 
     @property
-    def We(self) -> float:
-        _, _, resp, _ = self.__SI_mass_props__()
-        return resp
+    def fuel_weigh(self) -> float:
+        self.__param_computate__()
+        return self._Wf
 
     @property
-    def weight_fraction(self) -> np.array:
-        _, _, _, resp = self.__SI_mass_props__()
-        return resp
+    def weight_fraction(self) -> float:
+        self.__param_computate__()
+        return self._weight_fraction
 
     @property
-    def __imperial_mass_props__(self) -> Tuple[float, float, float, list]:
-        w0_kg, wf_kg, we_kg, wf = self.__SI_mass_props__()
-        return w0_kg * unit.lb, wf_kg * unit.lb, we_kg * unit.lb, wf
+    def wing_load(self) -> float:
+        self.__param_computate__()
+        assert self._W0_S, "ERROR: you didn't set a wing load value!"
+        return self._W0_S
+
+    @property
+    def thrust_to_weight_ratio(self) -> float:
+        self.__param_computate__()
+        assert self._T_W0, "ERROR: you didn't set a thrust to weight ratio!"
+        return self._T_W0
+
+    # ======< parameter treatment: Setters >======
+    @code_name.setter
+    def code_name(self, codename: str):
+        self._code_name = codename.upper()
 
     @first_range.setter
-    def first_range(self, kilometers: float) -> None:
-        self._f_range = kilometers * 1000 * unit.ft
+    def first_range(self, kilometers: float):
+        self._f_range = kilometers * 1000   # km
+        self.__has_modified__ = True
 
     @second_range.setter
-    def second_range(self, kilometers: float) -> None:
-        self._s_range = kilometers * 1000 * unit.ft
+    def second_range(self, kilometers: float):
+        self.second_range = kilometers * 1000   # km
+        self.__has_modified__ = True
+
+    @LD_max.setter
+    def LD_max(self, Value: float):
+        self._LDmax = Value   # dimensionless
+        self.__has_modified__ = True
 
     @sfc_cruise.setter
-    def sfc_cruise(self, sfc_SI_unit: float) -> None:
-        self._sfc_cruise = sfc_SI_unit * 1e-6 * unit.lb / unit.lbf
+    def sfc_cruise(self, g_per_kN_s: float):
+        self._sfc_cruise = g_per_kN_s * 1e-6   # kg/(N.s)
+        self.__has_modified__ = True
 
     @sfc_sea_level.setter
-    def sfc_sea_level(self, sfc_SI_unit: float) -> None:
-        self._sfc_sea_level = sfc_SI_unit * 1e-6 * unit.lb / unit.lbf
+    def sfc_sea_level(self, g_per_kN_s: float):
+        self._sfc_sea_level = g_per_kN_s * 1e6   # kg/(N.s)
+        self.__has_modified__ = True
+
+    @wing_span.setter
+    def wing_span(self, meters: float):
+        self._b = meters   # m
+        self.__has_modified__ = True
+
+    @wing_area.setter
+    def wing_area(self, meters2: float):
+        self._S = meters2   # m2
+        self.__has_modified__ = True
 
     @payload.setter
-    def payload(self, mass_kg: float) -> None:
-        self._payload = mass_kg * unit.lb
+    def payload(self, kilogram: float):
+        self._payload = kilogram   # kg
+        self.__has_modified__ = True
 
-    @person_avg.setter
-    def person_avg(self, mass_kg: float) -> None:
-        self._person_avg = mass_kg * unit.lb
+    @crew.setter
+    def crew(self, n_crew: float):
+        self._crew = n_crew
+        self.__has_modified__ = True
+
+    @person_avg_weigh.setter
+    def person_avg_weigh(self, kilogram: float):
+        self._person_avg = kilogram   # kg
+        self.__has_modified__ = True
 
     @loiter_time.setter
-    def loiter_time(self, time_minutes: float) -> None:
-        self._loiter_time = time_minutes * 60
+    def loiter_time(self, minutes: float):
+        self._loiter_time = minutes * 60   # min
+        self.__has_modified__ = True
+
+    @h_cruise.setter
+    def h_cruise(self, meters: float):
+        self._h_cruise = meters  # m
+        self.__has_modified__ = True
+
+    @h_celling.setter
+    def h_celling(self, meters: float):
+        self._h_celling = meters   # m
+        self.__has_modified__ = True
 
     @Mach.setter
-    def Mach(self, mach_number: float) -> None:
-        self._mach = mach_number
-        self._v_cruise = self._mach * self._sound_speed
+    def Mach(self, mach: float):
+        self._mach = mach
+        self.__has_modified__ = True
 
-    @sound_speed.setter
-    def sound_speed(self, speed_SI: float) -> None:
-        self._sound_speed = speed_SI * unit.ft   # ft/s
-        self._v_cruise = self._mach * self._sound_speed
+    @class_airplane.setter
+    def class_airplane(self, airplane_class: str):
+        self._class_airplane = airplane_class
+        self.__has_modified__ = True
 
-    # ======< Climatic props >======
+    @wing_load.setter
+    def wing_load(self, W0_S: float):
+        self._W0_S = W0_S
+        self.__has_modified__ = True
+
+    @thrust_to_weight_ratio.setter
+    def thrust_to_weight_ratio(self, T_W0: float):
+        self._T_W0 = T_W0
+        self.__has_modified__ = True
+
+    # ======< Static method Functions >======
     @staticmethod
-    def __rho_h_imperial__(H_feets: float):
-        h_m = H_feets * unit.m
-        T0 = 288.15   # °K
-        T = T0 - 0.0065 * h_m   # °K
-        rho = 1.225 * (T / T0) ** (-9.80665 / (-0.0065 * 287.15) - 1)
-        return rho * unit.lb / (unit.ft**3)
+    def __rho_per_h__(
+        h_meters: float,  # m
+        T0=288.15,  # °K
+        rho0: float = 1.225,  # kg/m^3
+        g: float = 9.80665,  # m/s^2
+        Lambda: float = -0.0065,  # °K/m
+        R: float = 287.15,  # J/(kg °K)
+    ):
+        T = T0 + Lambda * h_meters   # °K
+        rho = rho0 * (T / T0) ** (-g / (Lambda * R) - 1)
+        return rho
 
-    # ======< Raymer functions definition >======
+    @staticmethod
+    def __T_per_h__(
+        h_meters: float,  # m
+        T0=288.15,  # °K
+        Lambda: float = -0.0065,  # °K/m
+    ):
+        return T0 + Lambda * h_meters
+
+    @staticmethod
+    def __sound_speed_calculator__(
+        T: float,  # °K
+        gamma=1.4,  # Dimensionless
+        R=287.15,  # J/(kg °K)
+    ):
+        return 340  # (gamma * R * T) ** 0.5
+
     @staticmethod
     def Raymer_We(category: str) -> callable:
         coefs = {
@@ -219,8 +342,32 @@ class aircraft_pre_select:
             'JetTransport': [1.02, -0.06],
         }
         A, C = coefs[category]
-        wewo = lambda wo: A * (wo ** (C))
+        wewo = lambda wo: A * ((wo * unit.lb) ** (C))
         return wewo
+
+    @staticmethod
+    def Raymer_We_6_1(
+        catergory: str,
+        A: float,
+        T_W0: float,
+        W0_S: float,
+        M: float,
+        Kvs: float = 1.04,
+    ) -> callable:
+        coefs = {
+            'JetTrainer': [0, 4.28, -0.1, 0.1, 0.2, -0.24, 0.11],
+            'JetFighter': [-0.02, 2.16, -0.10, 0.2, 0.04, -0.1, 0.08],
+            'MilitaryCargo': [0.07, 1.71, -0.1, 0.1, 0.06, -0.1, 0.05],
+            'JetTransport': [0.32, 0.66, -0.13, 0.3, 0.06, -0.05, 0.05],
+        }
+        a, b, C1, C2, C3, C4, C5 = coefs[catergory]
+
+        def We_W0(W0):
+            P1 = b * ((W0 * unit.lb) ** C1) * (A**C2) * (T_W0**C3)
+            P2 = ((W0_S * unit.lb / (unit.ft**2)) ** C4) * (M**C5)
+            return (a + P1 * P2) * Kvs
+
+        return We_W0
 
     @staticmethod
     def Raymer_Wf(fase: str) -> any:
@@ -231,42 +378,25 @@ class aircraft_pre_select:
             if M < 1
             else (0.991 - 0.007 * M - 0.01 * M**2),
             'Landing': 0.995,
-            'Cruise': lambda R, SFC, LD, V: np.exp(-R * SFC / (V * LD)),
-            'Loiter': lambda E, SFC, LD: np.exp(-E * SFC / LD),
+            'Cruise': lambda R, SFC, LD, V: np.exp(
+                -R * SFC * unit.g / (V * LD)
+            ),
+            'Loiter': lambda E, SFC, LD: np.exp(-E * SFC * unit.g / LD),
         }
         wf = coef[fase]
         return wf
 
-    @staticmethod
-    def Raymer_T_W0(category: str) -> callable:
-        coef = {
-            'JetTrainer': [0.488, 0.728],
-            'JetFighterDogfigther': [0.648, 0.594],
-            'JetTrainerOther': [0.514, 0.141],
-            'MilitaryCargo': [0.244, 0.341],
-            'JetTransport': [0.267, 0.363],
-            'Sailpowerd': [0.043, 0.0],
-            'HBmetal': [0.005, 0.57],
-            'HBcomp': [0.004, 0.57],
-            'GAsingle': [0.025, 0.22],
-            'GAtwin': [0.036, 0.32],
-            'Agricultural': [0.009, 0.50],
-            '2TurboP': [0.013, 0.5],
-            'FlyBoat': [0.030, 0.23],
-        }
-        a, C = coef[category]
-
-        return lambda x: a * (x**C)
-
-    # ======< Estimation >======
+    # ======< Calculation >======
     def __SI_mass_props__(
-        self, first_step: float = 27_000.0
+        self,
+        We: callable,
+        first_step: float = 20_000.0,
     ) -> Tuple[float, float, float, np.array]:
-        first_step *= unit.lb
+        # first_step *= unit.lb
 
         time_second_range = self._s_range / self._v_cruise   # s
 
-        We = self.Raymer_We(self.class_airplane)
+        # self.Raymer_We(self._class_airplane)
         ##  W1/W0 -> Warmup and Take Off
         W1W0 = self.Raymer_Wf('WuTo')
 
@@ -276,13 +406,13 @@ class aircraft_pre_select:
 
         ## W3/W2 -> Cruise
         W3W2f = self.Raymer_Wf('Cruise')
-        W3W2 = lambda x: W3W2f(
-            x, self._sfc_cruise, self.LDmax * 0.866, self._v_cruise
+        W3W2 = lambda range: W3W2f(
+            range, self._sfc_cruise, self._LDmax * 0.866, self._v_cruise
         )
 
         ## W4/W3 -> Loiter 1
         W4W3f = self.Raymer_Wf('Loiter')
-        W4W3 = lambda x: W4W3f(x, self._sfc_sea_level, self.LDmax)
+        W4W3 = lambda time: W4W3f(time, self._sfc_sea_level, self._LDmax)
 
         ## W5/W4 -> Tentativa de Pouso
         W5W4 = self.Raymer_Wf('Landing')
@@ -292,7 +422,7 @@ class aircraft_pre_select:
 
         ## W7/W6 -> Cruseiro 2 - tempo
         W7W6 = self.Raymer_Wf('Loiter')
-        W7W6 = W7W6(time_second_range, self._sfc_cruise, self.LDmax * 0.866)
+        W7W6 = W7W6(time_second_range, self._sfc_cruise, self._LDmax * 0.866)
 
         ## W8/W7 -> Loiter
         W8W7 = W4W3
@@ -318,7 +448,7 @@ class aircraft_pre_select:
         Wpl = self._payload
 
         ## Tripulacao
-        Wcrew = self.crew * self._person_avg
+        Wcrew = self._crew * self._person_avg
 
         ## Calculo dos Pesos
         W0 = fsolve(
@@ -331,9 +461,9 @@ class aircraft_pre_select:
         W0 = W0[0]
 
         return (
-            W0 * unit.kg,
-            WfW0(self._f_range, self._loiter_time) * W0 * unit.kg,
-            We(W0) * W0 * unit.kg,
+            W0,  # * unit.kg,
+            WfW0(self._f_range, self._loiter_time) * W0,  # * unit.kg,
+            We(W0) * W0,  # * unit.kg,
             np.array(
                 [
                     W1W0,
@@ -353,82 +483,198 @@ class aircraft_pre_select:
         self,
         Range_takeoff: float,
         Range_land: float,
-        V_vertical_kmph: float = 2,
-        sigma_land: float = 0.9,
-        sigma_takeoff: float = 0.9,
-        CL_max: float = 2.5,
-        V_stall_kmph: float = 200,
-        TcruiseT0: float = 0.4,
-        rho_sea: float = 1.225,
+        CL_max: float,  # depends if it has flaps
+        rho_sea: float = 1.225,  # kg/m^3
+        sigma_land: float = 0.9,  # ratio of rho_air/rho_sea_level
+        sigma_takeoff: float = 0.9,  # ratio of rho_air/rho_sea_level
+        TcruiseT0: float = 0.3,  # avg Tcruise/T0
+        V_stall_kmph: float = 113,  # FAR 23 km/h -> just for comercial planes
+        V_vertical_kmph: float = 36,  # km/h
+        CL_stall_per_CL_max: float = 1,  # CL_max_stall/CL_max to fix CL in stall
+        CL_land_per_CL_max: float = 1,  # CL_max_land/CL_max to fix land CL
+        CL_takeoff_per_CL_max: float = 1,  # CL_max_takeoff/CL_max to fix takeoff CL
+        imperial_units: bool = False,
     ):
-        v_vertical = V_vertical_kmph * unit.ft / 3.6
-        v_stall = V_stall_kmph * unit.ft / 3.6
+        self.__param_computate__()
 
-        rho_sea_level = rho_sea * 0.0019403203   # slug/ft3
-        rho_cruise = self.__rho_h_imperial__(self._h_cruise) / 32.174
+        v_vertical = V_vertical_kmph / 3.6
+        v_stall = V_stall_kmph / 3.6
+
+        rho_sea_level = rho_sea   # kg/m^3
+        rho_cruise = rho_sea * (
+            self.__rho_per_h__(self._h_cruise) / self.__rho_per_h__(0)
+        )
 
         CD_min = 0.003 * self._S_wetted / self._S   # CL_max/self.LDmax
+
         # V_stall condition
-        WstallW0 = np.prod(self.weight_fraction[:2])
+        CL_max_stall = CL_max * CL_stall_per_CL_max
+        WstallW0 = np.prod(self._weight_fraction[:2])
         WS_stall = (
-            0.5 * rho_sea_level * (v_stall**2) * CL_max * WstallW0
+            0.5 * rho_sea_level * (v_stall**2) * CL_max_stall * WstallW0
         )   # <= que este valor
 
         # land distance condition
-        CL_max_land = CL_max
-        WlW0 = np.prod(self.weight_fraction[:4])
+        CL_max_land = CL_max * CL_land_per_CL_max
+        WlW0 = np.prod(self._weight_fraction[:4])
 
         WS_land = (
-            (2 / 3) * Range_land * sigma_land * CL_max_land / (79.4 * WlW0)
+            unit.N
+            * (unit.ft**3)  # = (N/lbf)*(ft^3/m^3)
+            * (2 / 3)
+            * Range_land
+            * sigma_land
+            * CL_max_land
+            / (79.4 * WlW0)
         )   # <= este valor
 
         # takeoff distance condition
-        CL_max_to = CL_max / (1.1**2)
-        WtoW0 = self.weight_fraction[0]
+        CL_max_to = CL_max * CL_takeoff_per_CL_max
+        WtoW0 = self._weight_fraction[0]
 
-        def TW_to(WS):   # >= este valor
-            WSc = WS * WtoW0
+        def TW_to(WS):   # >= este valor, WS [N/m^2]
+            WSc = WS * WtoW0 * (unit.lbf / (unit.ft**2))
             A = 20 * WSc
             B = sigma_takeoff * CL_max_to
-            C = Range_takeoff - 69.6 * np.sqrt(
+            C = Range_takeoff * unit.ft - 69.6 * np.sqrt(
                 WSc / (sigma_takeoff * CL_max_to)
             )
             return A / (B * C)
 
         # V_cruise condition
-        q = 0.5 * rho_cruise * (self._v_cruise**2)
-        K = 1 / (np.pi * self._b**2 / self._S)
+        q = 0.5 * rho_cruise * (self._v_cruise**2)   # N/m^2
+        K = 1 / (np.pi * self._b**2 / self._S)   # dimensionless
 
-        WcruiseW0 = np.prod(self.weight_fraction[:2])
+        WcruiseW0 = np.prod(self._weight_fraction[:2])
 
         def TW_cruise(WS):   # >= este valor
-            WSc = WS * WcruiseW0
-            A = q * CD_min / (WSc)
-            B = (K * WSc) / q
+            WSc = WS * WcruiseW0 * (unit.lbf / (unit.ft**2))
+            q_imperial = q * unit.lbf / (unit.ft**2)
+            A = q_imperial * CD_min / (WSc)
+            B = (K * WSc) / (q_imperial)
             return (A + B) * WcruiseW0 / TcruiseT0
 
         # Service Ceiling condition
-        rho_celling = self.__rho_h_imperial__(self._h_celling)
-        WcellingW0 = np.prod(self.weight_fraction[:2])
+        rho_celling = (
+            rho_sea
+            * self.__rho_per_h__(self._h_celling)
+            / self.__rho_per_h__(0)
+        )
+        WcellingW0 = np.prod(self._weight_fraction[:2])
 
         def TW_ceiling(WS):   # >= este valor
-            WSc = WS * WcruiseW0
+            WSc = (
+                WS * WcruiseW0 * (unit.lbf / (unit.ft**2))
+            )   # N/m^2 to lbf/ft^2
+            v_v = v_vertical * unit.ft   # m/s to ft/s
+            rho_cell = rho_celling * unit.slug_per_ft3   # kg/m^3 to slug/ft^3
+
             A = np.sqrt(K / (3 * CD_min))
-            B = v_vertical / np.sqrt(2 * WSc * A / rho_celling)
+            B = v_v / np.sqrt(2 * WSc * A / rho_cell)
             C = 4 * np.sqrt(K * CD_min / 3)
             return (B + C) / WcellingW0
 
-        return WS_stall, WS_land, TW_to, TW_cruise, TW_ceiling
+        
+        if imperial_units:
+            lbf_ft2 = 47.880172   # N/m^2
+
+            WS_stall = WS_stall / lbf_ft2
+            WS_land = WS_land / lbf_ft2
+            TW_to_r = lambda WS_imperial: TW_to(WS_imperial * lbf_ft2)
+            TW_cruise_r = lambda WS_imperial: TW_cruise(WS_imperial * lbf_ft2)
+            TW_ceiling_r = lambda WS_imperial: TW_ceiling(
+                WS_imperial * lbf_ft2
+            )
+        else:
+            TW_to_r = lambda WS_SI: TW_to(WS_SI)
+            TW_cruise_r = lambda WS_SI: TW_cruise(WS_SI)
+            TW_ceiling_r = lambda WS_SI: TW_ceiling(WS_SI)
+        return (
+            WS_stall,
+            WS_land,
+            TW_to_r,
+            TW_cruise_r,
+            TW_ceiling_r,
+        )
 
     # ======< Variables Overload >======
 
     def __repr__(self) -> str:
-        values = self.__SI_mass_props__()
-        repr = '+' + '-' * 16 + '+\n'
-        repr += '|' + 'W0  : ' + (f'{values[0] :_.0f} Kg').center(10) + '|\n'
-        repr += '|' + 'Wf  : ' + (f'{values[1] :_.0f} kg').center(10) + '|\n'
-        repr += '|' + 'We  : ' + (f'{values[2] :_.0f} kg').center(10) + '|\n'
-        for i, Wn in enumerate(values[3]):
+        self.__param_computate__()
+
+        repr = f'Airplane: {self._code_name}' + '\n'
+        repr += f'first range: {self.first_range} km' + '\n'
+        repr += f'second range: {self.second_range} km' + '\n'
+        repr += f'Wing area: {round(self.wing_area,2)} m²' + '\n'
+        repr += f'Wing spain: {self.wing_span} m²' + '\n'
+        repr += '+' + '-' * 16 + '+\n'
+        repr += '|' + 'W0  : ' + (f'{self.M_tow :_.0f} Kg').center(10) + '|\n'
+        repr += (
+            '|' + 'Wf  : ' + (f'{self.fuel_weigh :_.0f} kg').center(10) + '|\n'
+        )
+        repr += (
+            '|'
+            + 'We  : '
+            + (f'{self.empty_weigh :_.0f} kg').center(10)
+            + '|\n'
+        )
+        for i, Wn in enumerate(self.weight_fraction):
             repr += '|' + f'W{i+1}W{i}: ' + (f'{Wn:.5f}').center(10) + '|\n'
         repr += '+' + '-' * 16 + '+\n'
         return repr
+
+    # ======< Reload Function >======
+    def __param_computate__(self):
+
+        if self.__has_modified__:
+            # Update sound speed
+            self._sound_speed = self.__sound_speed_calculator__(
+                self.__T_per_h__(self._h_cruise)
+            )
+
+            # S_wett
+            A_wetted = (self._LDmax / 15.5) ** 2
+            self._S_wetted = self._b**2 / A_wetted
+
+            # Update v cruise
+            self._v_cruise = self._mach * self._sound_speed
+
+            # Update aspect ratio
+            self._A = self._b**2 / self._S
+
+            # Veriry if exists W0/S and T/W0 to make better estimation
+            if self._T_W0 == None and self._W0_S == None:
+                # Update mass props
+                W0, Wf, We, n = self.__SI_mass_props__(
+                    self.Raymer_We(self._class_airplane)
+                )
+                self._W0, self._Wf, self._We, self._weight_fraction = (
+                    W0,
+                    Wf,
+                    We,
+                    n,
+                )
+            elif self._T_W0 != None and self._W0_S != None:
+                W0, Wf, We, n = self.__SI_mass_props__(
+                    self.Raymer_We_6_1(
+                        self._class_airplane,
+                        self._A,
+                        self._T_W0,
+                        self._W0_S,
+                        self._mach,
+                    )
+                )
+                self._W0, self._Wf, self._We, self._weight_fraction = (
+                    W0,
+                    Wf,
+                    We,
+                    n,
+                )
+
+                self._S = self._W0 * unit.g / self._W0_S
+            else:
+                assert False, 'Error: T/W0 and W0/S is not defined!'
+            # Stop correction loop
+            self.__has_modified__ = False
+        else:
+            pass

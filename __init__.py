@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from src.airfoil import *
-from src.pre_selection_metric import *
+from src.pre_selection_plotter import *
 
 a = aircraft_selection(
     'My airplane',
@@ -17,6 +17,11 @@ a = aircraft_selection(
 )
 
 print(a)
+
+f, ax = a.plot_restriction_diagram(
+    700, 900, 2.5, V_stall_kmph=190, imperial_units=True, V_vertical_kmph=30
+)
+f.show()
 
 a.thrust_to_weight_ratio = 0.3807
 a.wing_load = 3591.0
