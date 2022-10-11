@@ -479,23 +479,66 @@ class aircraft_selection_core:
             ),
         )
 
+    def __kwargs_of_RD__(self, **kwargs):   # RD = restriction_diagram
+        possible_args = [
+            'rho_sea',
+            'sigma_land',
+            'sigma_takeoff',
+            'TcruiseT0',
+            'V_stall_kmph',
+            'V_vertical_kmph',
+            'CL_stall_per_CL_max',
+            'CL_land_per_CL_max',
+            'CL_takeoff_per_CL_max',
+        ]
+        for arg in kwargs:
+            assert (
+                arg in possible_args
+            ), f'ERROR: unrecognized argument ({arg})'
+
+        if not 'rho_sea' in kwargs:
+            kwargs['rho_sea'] = 1.225   # kg/m^3
+        if not 'sigma_land' in kwargs:
+            kwargs['sigma_land'] = 0.9  # ratio of rho_air/rho_sea_level
+        if not 'sigma_takeoff' in kwargs:
+            kwargs['sigma_takeoff'] = 0.9  # ratio of rho_air/rho_sea_level
+        if not 'TcruiseT0' in kwargs:
+            kwargs['TcruiseT0'] = 0.3  # avg Tcruise/T0
+        if not 'V_stall_kmph' in kwargs:
+            kwargs['V_stall_kmph'] = 113
+            # FAR 23 km/h -> just for comercial planes
+        if not 'V_vertical_kmph' in kwargs:
+            kwargs['V_vertical_kmph'] = 36  # km/h
+        if not 'CL_stall_per_CL_max' in kwargs:
+            kwargs['CL_stall_per_CL_max'] = 1
+            # CL_max_stall/CL_max to fix CL in stall
+        if not 'CL_land_per_CL_max' in kwargs:
+            kwargs['CL_land_per_CL_max'] = 1
+            # CL_max_land/CL_max to fix land CL
+        if not 'CL_takeoff_per_CL_max' in kwargs:
+            kwargs['CL_takeoff_per_CL_max'] = 1
+            # CL_max_takeoff/CL_max to fix takeoff CL
+        return kwargs
+
     def restriction_diagram(
         self,
         Range_takeoff: float,
         Range_land: float,
         CL_max: float,  # depends if it has flaps
-        rho_sea: float = 1.225,  # kg/m^3
-        sigma_land: float = 0.9,  # ratio of rho_air/rho_sea_level
-        sigma_takeoff: float = 0.9,  # ratio of rho_air/rho_sea_level
-        TcruiseT0: float = 0.3,  # avg Tcruise/T0
-        V_stall_kmph: float = 113,  # FAR 23 km/h -> just for comercial planes
-        V_vertical_kmph: float = 36,  # km/h
-        CL_stall_per_CL_max: float = 1,  # CL_max_stall/CL_max to fix CL in stall
-        CL_land_per_CL_max: float = 1,  # CL_max_land/CL_max to fix land CL
-        CL_takeoff_per_CL_max: float = 1,  # CL_max_takeoff/CL_max to fix takeoff CL
         imperial_units: bool = False,
+        **kwargs,
     ):
         self.__param_computate__()
+        kwargs = self.__kwargs_of_RD__(**kwargs)
+        rho_sea = kwargs['rho_sea']
+        sigma_land = kwargs['sigma_land']
+        sigma_takeoff = kwargs['sigma_takeoff']
+        TcruiseT0 = kwargs['TcruiseT0']
+        V_stall_kmph = kwargs['V_stall_kmph']
+        V_vertical_kmph = kwargs['V_vertical_kmph']
+        CL_stall_per_CL_max = kwargs['CL_stall_per_CL_max']
+        CL_land_per_CL_max = kwargs['CL_land_per_CL_max']
+        CL_takeoff_per_CL_max = kwargs['CL_takeoff_per_CL_max']
 
         v_vertical = V_vertical_kmph / 3.6
         v_stall = V_stall_kmph / 3.6
@@ -574,7 +617,6 @@ class aircraft_selection_core:
             C = 4 * np.sqrt(K * CD_min / 3)
             return (B + C) / WcellingW0
 
-        
         if imperial_units:
             lbf_ft2 = 47.880172   # N/m^2
 
