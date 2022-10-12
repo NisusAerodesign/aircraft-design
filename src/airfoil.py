@@ -2,11 +2,10 @@
 from pathlib import Path
 from typing import List
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
-
-import matplotlib.pyplot as plt
 
 
 #%% functions

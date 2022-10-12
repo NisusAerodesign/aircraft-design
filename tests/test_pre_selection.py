@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.pre_selection import *
+from src.pre_selection_core import *
 
 airplane_New_York_to_Biggin_Hill = aircraft_pre_select(
     first_range=5542.0,

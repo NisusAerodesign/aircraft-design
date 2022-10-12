@@ -2,8 +2,10 @@ from cProfile import label
 from dataclasses import dataclass
 from turtle import color
 from typing import Optional
-from src.pre_selection import *
+
 import matplotlib.pyplot as plt
+
+from src.pre_selection_geometry import *
 
 
 @dataclass
@@ -35,7 +37,7 @@ class Engine:
     color: Optional[str] = None
 
 
-class aircraft_selection(aircraft_selection_core):
+class aircraft_selection(aircraft_selection_geometry):
     def plot_constraint_diagram(
         self,
         Range_takeoff: float,
@@ -47,7 +49,7 @@ class aircraft_selection(aircraft_selection_core):
         **kwargs,
     ):
         self.__param_computate__()
-        
+
         (
             WS_stall,
             WS_land,
@@ -114,10 +116,10 @@ class aircraft_selection(aircraft_selection_core):
         ax.set_ylim([min_tw, max_tw])
 
         ax.grid()
-        
+
         f.legend(bbox_to_anchor=bbox_to_anchor)
         f.suptitle('Constraint diagram')
-        
+
         if imperial_units:
             ax.set_xlabel(r'W0/S [lb/ft²]')
         else:
@@ -139,7 +141,7 @@ class aircraft_selection(aircraft_selection_core):
         **kwargs,
     ):
         self.__param_computate__()
-        
+
         (
             WS_stall,
             WS_land,
@@ -232,6 +234,6 @@ class aircraft_selection(aircraft_selection_core):
 
         ax.grid()
         f.suptitle('Engine comparison')
-        f.legend(bbox_to_anchor=bbox_to_anchor) 
-        f.tight_layout() 
+        f.legend(bbox_to_anchor=bbox_to_anchor)
+        f.tight_layout()
         return f, ax
