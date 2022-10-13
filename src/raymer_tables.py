@@ -1,4 +1,5 @@
 from http.cookies import CookieError
+
 import numpy as np
 
 
@@ -48,10 +49,8 @@ class Raymer:
             'JetFighter(dogfighter)': [5.416, -0.622],
             'JetFighter(other)': [4.110, -0.622],
             'MilitaryCargo': [5.570, -1.075],
-            'JetTransport': [
-                11.613,
-                1.419,
-            ],  # 7 to 10 this perform nearly good
+            'JetTransport': [13.697, 1.882],
+            # 7 to 10 this perform nearly good
         }
 
         a, C = coefs[category]
@@ -81,6 +80,18 @@ class Raymer:
             return (a + P1 * P2) * Kvs
 
         return We_W0
+
+    @staticmethod
+    def Raymer_fuselage_6_3(category: str):
+        coefs = {
+            'JetTrainer': [0.333, 0.41],
+            'JetFighter': [0.389, 0.39],
+            'MilitaryCargo': [0.104, 0.50],
+            'JetTransport': [0.287, 0.43],
+        }
+
+        a, C = coefs[category]
+        return lambda W0: a * (W0**C)
 
     @staticmethod
     def Raymer_Wf(fase: str) -> any:

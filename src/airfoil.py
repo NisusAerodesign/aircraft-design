@@ -1,6 +1,6 @@
 #%% Library
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -56,10 +56,9 @@ def wing_volume(
 #%% Import data
 def load_xfoil_data(Data: Path):
 
-    alpha, Cl, Cd, *_ = np.loadtxt(Data, skiprows=11, unpack=True)
-    LD = np.array([cl / cd for cl, cd in zip(Cl, Cd)])
+    alpha, Cl, Cd, _, Cm, *_ = np.loadtxt(Data, skiprows=11, unpack=True)
 
-    return alpha, Cl, Cd, LD
+    return alpha, Cl, Cd, Cm
 
 
 # %%
@@ -79,10 +78,11 @@ def plot_areas(airfoil: Path, airfoil_name, colour, ax, xatk=0.1, xfug=0.7):
         fi(xarea),
         color=colour,
         alpha=0.3,
-        label=f'{round(100*Aliq/Atot, 2)}% = {round(Aliq*10000,2)} cm²',
+        label=f'{airfoil_name}: {round(100*Aliq/Atot, 2)}% = {round(Aliq*10000,2)} cm²',
     )
+
     ax.set_title(f'{airfoil_name}')
-    ax.legend()
+    # ax.legend()
     ax.axis('equal')
     ax.grid()
 
@@ -93,8 +93,12 @@ def plot_airfoil(
     initial_point: float = 0.0,
     final_point: float = 1.0,
     Colors: List[str] = None,
+    bbox_to_anchor: Tuple[float] = (0.85, 0.05),
+    maxH=0.08,
+    proportion=(5, 6),
 ):
-    fig, axes = plt.subplots(len(airfoil_path), 1, sharex=True)
+    plt.rcParams['figure.figsize'] = proportion
+    fig, axes = plt.subplots(len(airfoil_path), 1)  # , sharex=True)
 
     for i, ax in enumerate(axes):
         if Colors != None:
@@ -115,4 +119,13 @@ def plot_airfoil(
                 xatk=initial_point,
                 xfug=final_point,
             )
-    plt.show()
+        ax.set_xlim([0, 1])
+        ax.set_ylim([-maxH, maxH])
+        ax.set_xticklabels([])
+    axes[-1].set_xticklabels([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    fig.subplots_adjust(
+        left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.4, hspace=0.4
+    )
+    fig.legend(bbox_to_anchor=bbox_to_anchor)
+
+    return fig, axes
