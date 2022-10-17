@@ -26,6 +26,26 @@ print(a)
 
 a.computate_geometry(0.5, 20, 5, 1.2, 0.7, 3)
 print(a)
+
+lam_esc = np.arccos(0.7/0.8) * 180/np.pi
+
+print(f'Alpha = {lam_esc : .2f}°')
+f,ax,al, alc4 = a.wing_super_view(lam_esc, 'l')
+plt.close()
+print(f'Λ_LE = {al:.2f}°, Λ_C/4 = {alc4:.2f}°')
+
+mach = lambda M,alpha: M*np.cos(alpha*np.pi/180)
+lambda_LE = np.linspace(0,90)
+plt.plot(lambda_LE, mach(0.8, lambda_LE))
+plt.plot([al],[mach(0.8,al)],'x', label = 'configuração escolhida')
+plt.plot([30],[mach(0.8,30)],'x', label = 'configuração 30°')
+plt.plot([20],[mach(0.8,20)],'x', label = 'configuração 20°')
+plt.xlabel('graus')
+plt.ylabel('Mach aparente')
+plt.title('Comportamento do Mach aparente para Mach de referência de 0,8')
+plt.grid()
+plt.legend()
+plt.show()
 """_summary_
 
 """
