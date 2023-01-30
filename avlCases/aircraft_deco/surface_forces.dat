@@ -1,0 +1,25 @@
+ ---------------------------------------------------------------
+ Surface Forces (referred to Sref,Cref,Bref about Xref,Yref,Zref)
+ Standard axis orientation,  X fwd, Z down         
+
+     Sref =   64.69       Cref =    2.4000   Bref =   21.5500
+     Xref =     12.0400   Yref =    0.0000   Zref =    0.3480
+
+ n      Area      CL      CD      Cm      CY      Cn      Cl     CDi     CDv
+ 1    21.570  0.9010  0.0952 -0.3294 -0.0129  0.0074 -0.0983  0.0952  0.0000   wing_fowler_flap
+ 2    21.570  0.9010  0.0952 -0.3294  0.0129 -0.0074  0.0983  0.0952  0.0000   wing_fowler_flap (YDUP)
+ 3    10.774  0.1417  0.0012 -0.1580  0.0030 -0.0027 -0.0516  0.0012  0.0000   wing
+ 4    10.774  0.1417  0.0012 -0.1580 -0.0030  0.0027  0.0516  0.0012  0.0000   wing (YDUP)
+ 5     5.739 -0.1159  0.0113  0.4874 -0.0052  0.0041  0.0108  0.0113  0.0000   empennage_H
+ 6     5.739 -0.1159  0.0113  0.4874  0.0052 -0.0041 -0.0108  0.0113  0.0000   empennage_H (YDUP)
+
+ Surface Forces (referred to Ssurf, Cave about root LE on hinge axis)
+
+   n     Ssurf      Cave       cl       cd      cdv
+   1    21.570     4.004   2.7024   0.2857   0.0000  wing_fowler_flap
+   2    21.570     4.004   2.7024   0.2857   0.0000  wing_fowler_flap (YDUP)
+   3    10.774     2.000   0.8507   0.0072   0.0000  wing
+   4    10.774     2.000   0.8507   0.0072   0.0000  wing (YDUP)
+   5     5.739     1.150  -1.3061   0.1272   0.0000  empennage_H
+   6     5.739     1.150  -1.3061   0.1272   0.0000  empennage_H (YDUP)
+ ---------------------------------------------------------------

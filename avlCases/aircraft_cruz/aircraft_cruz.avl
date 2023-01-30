@@ -1,0 +1,52 @@
+aircraft_cruz
+#AVL input file written by avlwrapper 0.3.1#Mach
+0
+#iYsym iZsym Zsym
+0 0 0.0
+#Sref Cref Bref
+51.72 2.4 21.55
+#Xref Yref Zref
+0 0 0
+0.0
+SURFACE
+wing
+#NChordwise ChordSpacing NSpanwise SpanSpacing
+30 1 30 -2
+YDUPLICATE
+0.0
+SECTION
+#Xle Yle Zle Chord Angle
+9.7 0 0.0 3.1999999999999997 0.0
+AFILE  
+/home/widmark/Github/fly-by-wire/airfoils/SC(2)-0614.dat
+SECTION
+#Xle Yle Zle Chord Angle
+15.429169126152434 10.775 0.0 1.5999999999999999 0.0
+
+
+
+AFILE  
+/home/widmark/Github/fly-by-wire/airfoils/SC(2)-0614.dat
+
+SURFACE
+empennage_H
+#NChordwise ChordSpacing NSpanwise SpanSpacing
+30 1 30 -2
+YDUPLICATE
+0.0
+SECTION
+#Xle Yle Zle Chord Angle
+19.61 0.0 6.1 1.5333333333333332 0.0
+AFILE  
+/home/widmark/Github/fly-by-wire/airfoils/SD7032-NEG.dat
+CONTROL
+#Name Gain XHinge Vector SgnDup
+elevator 1 0.75 0 0 0 1
+SECTION
+#Xle Yle Zle Chord Angle
+21.937341521851597 4.991 6.1 0.7666666666666666 0.0
+AFILE  
+/home/widmark/Github/fly-by-wire/airfoils/SD7032-NEG.dat
+CONTROL
+#Name Gain XHinge Vector SgnDup
+elevator 1 0.75 0 0 0 1
