@@ -237,8 +237,8 @@ class aircraft_selection(aircraft_selection_geometry):
         f.legend(bbox_to_anchor=bbox_to_anchor)
         f.tight_layout()
         return f, ax
-    
-    def wing_super_view(self,alpha_atk_deg:float = None, align = 'c'):
+
+    def wing_super_view(self, alpha_atk_deg: float = None, align='c'):
         # C is Center
         # T is Trailing edge
         # L is Leading edge
@@ -253,54 +253,58 @@ class aircraft_selection(aircraft_selection_geometry):
                 self._tail_TR,
             ]
         ), 'Error: Aircraft geometry is not defined!'
-        
+
         if alpha_atk_deg == None:
             alpha_atk_deg = self._wing_sweep
-        
-        cm = self._S/self._b
-        cr = 2*cm/(self._wing_TR+1)
+
+        cm = self._S / self._b
+        cr = 2 * cm / (self._wing_TR + 1)
         ct = self._wing_TR * cr
-         
-        b_2 = self._b/2
-        
-        al = alpha_atk_deg*np.pi/180
+
+        b_2 = self._b / 2
+
+        al = alpha_atk_deg * np.pi / 180
         if align.lower() == 'l':
             ctc = b_2 * np.tan(al)
         elif align.lower() == 'c':
-            ctc = b_2*np.tan(al) + (cr-ct)/2
+            ctc = b_2 * np.tan(al) + (cr - ct) / 2
         elif align.lower() == 't':
-            ctc = b_2 * np.tan(al) + (cr-ct)
+            ctc = b_2 * np.tan(al) + (cr - ct)
         else:
-            assert True, f'Error align parameter ({align.lower()}) not recognized!'
-            
-        CR = np.linspace(0,cr)
-        CT = np.linspace(ctc, ctc+ct)
-        
-        al = (180/np.pi) * np.arctan(ctc/b_2)
-        alc4 = (180/np.pi) * np.arctan((ctc+ct/4-cr/4)/b_2)
-        
+            assert (
+                True
+            ), f'Error align parameter ({align.lower()}) not recognized!'
+
+        CR = np.linspace(0, cr)
+        CT = np.linspace(ctc, ctc + ct)
+
+        al = (180 / np.pi) * np.arctan(ctc / b_2)
+        alc4 = (180 / np.pi) * np.arctan((ctc + ct / 4 - cr / 4) / b_2)
+
         plt.rcParams['figure.figsize'] = (6, 12)
         f, ax = plt.subplots()
         f.subplots_adjust(
-        left=0.105,
-        bottom=0.067,
-        right=0.967,
-        top=0.933,
-        wspace=0.0,
-        hspace=0.2,
+            left=0.105,
+            bottom=0.067,
+            right=0.967,
+            top=0.933,
+            wspace=0.0,
+            hspace=0.2,
         )
-        ax.plot(CR, 0*CR, 'k')
-        ax.plot(CT, b_2 + 0*CT, 'k')
-        ax.plot(CT, -b_2 + 0*CT, 'k')
-        ax.plot([0, CT[0]], [0,b_2], 'k')
-        ax.plot([0, CT[0]], [0,-b_2], 'k')
-        ax.plot([cr, CT[-1]], [0,b_2], 'k')
-        ax.plot([cr, CT[-1]], [0,-b_2], 'k')
-        ax.plot([cr/4, ctc + ct/4], [0,b_2], 'k--')
-        ax.plot([cr/4, ctc + ct/4], [0,-b_2], 'k--')
+        ax.plot(CR, 0 * CR, 'k')
+        ax.plot(CT, b_2 + 0 * CT, 'k')
+        ax.plot(CT, -b_2 + 0 * CT, 'k')
+        ax.plot([0, CT[0]], [0, b_2], 'k')
+        ax.plot([0, CT[0]], [0, -b_2], 'k')
+        ax.plot([cr, CT[-1]], [0, b_2], 'k')
+        ax.plot([cr, CT[-1]], [0, -b_2], 'k')
+        ax.plot([cr / 4, ctc + ct / 4], [0, b_2], 'k--')
+        ax.plot([cr / 4, ctc + ct / 4], [0, -b_2], 'k--')
         ax.axis('equal')
         ax.set_xlabel('meters')
         ax.set_ylabel('meters')
-        ax.set_title(f'Wing configuration \n Λ_LE = {al:.2f}°, Λ_C/4 = {alc4:.2f}°')
-        
+        ax.set_title(
+            f'Wing configuration \n Λ_LE = {al:.2f}°, Λ_C/4 = {alc4:.2f}°'
+        )
+
         return f, ax, al, alc4

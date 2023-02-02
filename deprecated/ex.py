@@ -22,14 +22,18 @@ g = 9.81
 
 #%% Functions generic
 
-def T(H:float) -> float:
-    return T0 + LA*H
 
-def rho(H:float)->float:
-    return rho0*(T(H)/T0)**(-g/LA/Rsp -1)
+def T(H: float) -> float:
+    return T0 + LA * H
 
-def soundSpeed(H:float)->float:
-    return np.sqrt(gamma*Rsp*T(H))
+
+def rho(H: float) -> float:
+    return rho0 * (T(H) / T0) ** (-g / LA / Rsp - 1)
+
+
+def soundSpeed(H: float) -> float:
+    return np.sqrt(gamma * Rsp * T(H))
+
 
 #%% Functions geometry
 def root_chord(chord: float, taper_ratio: float) -> float:
@@ -47,13 +51,14 @@ def transition_chord(
     Cr = 2 * chord * taper_ratio / (1 + taper_ratio)
     return Cr * (1 - transition_point) + Ct * transition_point
 
+
 #%% Head
 config_file()
-cfg_path = Path('src','./config.cfg')
+cfg_path = Path('src', './config.cfg')
 my_config = avl.Configuration(cfg_path)
 
 airfoil_wing = Path(PATH_AIRF, 'SC(2)-0614.dat')
-airfoil_empennage = Path(PATH_AIRF,'SD7032-NEG.dat')
+airfoil_empennage = Path(PATH_AIRF, 'SD7032-NEG.dat')
 elevator = avl.Control(name='elevator', gain=1, x_hinge=0.75, duplicate_sign=1)
 flap_fowler = avl.Control(name='flap', gain=1, x_hinge=0.7, duplicate_sign=1)
 
@@ -74,7 +79,7 @@ flap = ac.wing(
     sweep_angle=28.0,
     x_position=9.70,
     control=[flap_fowler],
-    name = 'wing_fowler_flap'
+    name='wing_fowler_flap',
 )
 
 wingFlap = ac.wing(
@@ -85,7 +90,7 @@ wingFlap = ac.wing(
     sweep_angle=28.0,
     x_position=dx + 9.70,
     y_position=b / 4,
-    name = 'wing'
+    name='wing',
 )
 
 
@@ -99,7 +104,7 @@ wing = ac.wing(
     sweep_angle=28.0,
     x_position=9.70,
     y_position=0,
-    name  = 'wing'
+    name='wing',
 )
 
 #%% Empenagens
@@ -113,7 +118,7 @@ empennage = ac.wing(
     x_position=19.61,
     z_position=6.1,
     control=[elevator],
-    name = 'empennage_H'
+    name='empennage_H',
 )
 
 #%% Plot
@@ -140,7 +145,7 @@ aircraft_deco = avl.Geometry(
     reference_point=avl.Point(x=0, y=0, z=0),
     mach=0,
     z_symmetry=avl.Symmetry.symmetric,
-    z_symmetry_plane=0.916*1.1,
+    z_symmetry_plane=0.916 * 1.1,
     surfaces=[f, wf, e],
 )
 
@@ -154,60 +159,54 @@ aircraft_cruz = avl.Geometry(
     surfaces=[w, e],
 )
 #%% Constantes
-W       = 18_000*9.81
-Sref    = 51.52
-Clmax   = 2.243
-Clfunc  = lambda rho, v: W / (0.5 * rho * Sref * v**2)
+W = 18_000 * 9.81
+Sref = 51.52
+Clmax = 2.243
+Clfunc = lambda rho, v: W / (0.5 * rho * Sref * v**2)
 
 
 # Cruzeiro
 
-rhoCru  = rho(11_000)
-vCru    = 0.8*soundSpeed(11_000)
-ClCru   = Clfunc(rho=rhoCru, v=vCru)
+rhoCru = rho(11_000)
+vCru = 0.8 * soundSpeed(11_000)
+ClCru = Clfunc(rho=rhoCru, v=vCru)
 
 paramCru = {
-    'CL'        : ClCru,
-    'velocity'  : vCru,
-    'density'   : rhoCru,
-    'Ixx'       : 51.492,
-    'Iyy'       : 173.410,
-    'Izz'       : 132.225,
-    'mass'      : 18000 * 0.97 * 0.985,
-    'X_cg'      : 12.04,
-    'Z_cg'      : 0.348,
-
+    'CL': ClCru,
+    'velocity': vCru,
+    'density': rhoCru,
+    'Ixx': 51.492,
+    'Iyy': 173.410,
+    'Izz': 132.225,
+    'mass': 18000 * 0.97 * 0.985,
+    'X_cg': 12.04,
+    'Z_cg': 0.348,
 }
 
 # Rolagem Decolagem
-vstall = np.sqrt(W/(0.5*rho0*Sref*Clmax))
-vRD = 1.1*vstall
-ClRD = Clfunc(rho=rho0, v = vRD)
+vstall = np.sqrt(W / (0.5 * rho0 * Sref * Clmax))
+vRD = 1.1 * vstall
+ClRD = Clfunc(rho=rho0, v=vRD)
 paramRD = {
-    'alpha'     : 3,
-    'velocity'  : vRD,
-    'CL'        : ClRD,
-    'Ixx'       : 51.492,
-    'Iyy'       : 173.410,
-    'Izz'       : 132.225,
-    'mass'      : 18000,
-    'X_cg'      : 12.04,
-    'Z_cg'      : 0.348,
+    'alpha': 3,
+    'velocity': vRD,
+    'CL': ClRD,
+    'Ixx': 51.492,
+    'Iyy': 173.410,
+    'Izz': 132.225,
+    'mass': 18000,
+    'X_cg': 12.04,
+    'Z_cg': 0.348,
 }
 #%% Análises cruzeiro
 trim_param = avl.Parameter(name='elevator', setting='Cm', value=0.0)
-trim_param2= avl.Parameter(name='alpha', setting='CL', value=ClCru)
+trim_param2 = avl.Parameter(name='alpha', setting='CL', value=ClCru)
 trim_case = avl.Case(
-    name='trimmed', 
-    elevator=trim_param,
-    alpha = trim_param2, 
-    **paramCru
-    )
+    name='trimmed', elevator=trim_param, alpha=trim_param2, **paramCru
+)
 
 session = avl.Session(
-    geometry=aircraft_cruz, 
-    cases=[trim_case], 
-    config=my_config
+    geometry=aircraft_cruz, cases=[trim_case], config=my_config
 )
 savePath = Path(PATH_CASE, aircraft_cruz.name)
 session.export_run_files(savePath)

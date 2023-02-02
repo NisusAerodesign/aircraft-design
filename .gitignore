@@ -135,3 +135,10 @@ poetry.lock
 
 # Vscode
 .vscode/
+
+# binaries
+avl
+Avl/
+*.tgz
+# Config Files
+*.cfg

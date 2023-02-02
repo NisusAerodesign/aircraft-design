@@ -1,2 +1,2 @@
 # aircraft-design
-Projeto de uma aeronave executiva com missão Londres-Dubai para a disciplina de Engenharia de Veículos Aeroespaciais 
+Projeto Desenvolvido pelos membros da equipe de competição NISUS-aerodesign para facilitar análises de aeronaves por meio da ferramenta de *Vortex lattice*.
