@@ -142,3 +142,4 @@ Avl/
 *.tgz
 # Config Files
 *.cfg
+*.lock

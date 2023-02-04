@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from aircraft_design.classes.runner import __config_path__, __list_bin_path__
 from aircraft_design.classes import AircraftDesignError
 from pathlib import Path

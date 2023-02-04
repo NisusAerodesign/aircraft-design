@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from pathlib import Path
 import avlwrapper as avl
 import matplotlib.pyplot as plt
