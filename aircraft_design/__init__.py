@@ -5,12 +5,12 @@ from pathlib import Path
 from shutil import copy
 
 
-if not __config_path__/'avl' in __list_bin_path__:
+if not __config_path__ / 'avl' in __list_bin_path__:
     try:
         file = input('Input path to binary AVL file: ')
         file = Path(file).absolute()
-        copy(str(file), str(__config_path__/'avl'))
+        copy(str(file), str(__config_path__ / 'avl'))
     except:
         raise AircraftDesignError('Binary not found!')
-    
+
 from aircraft_design.classes import Aircraft, Wing
