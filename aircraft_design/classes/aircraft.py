@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# from avlwrapper import Aircraft, Symmetry, Surface, Point
 import avlwrapper as avl
 
 
@@ -77,7 +78,7 @@ class Aircraft:
 
     def geometry(self, name):
 
-        aircraft = avl.Geometry(
+        aircraft = avl.Aircraft(
             name=name,
             reference_area=self.ref_area,
             reference_chord=self.chord,

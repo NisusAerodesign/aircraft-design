@@ -38,7 +38,8 @@ __cfg_path__ = __config_path__ / 'config.cfg'
 class Session(avl.Session):
     def __init__(self, geometry, cases=None, name=None):
         self.config = __cfg_path__
-        super().__init__(geometry, cases, name, config=self.config)
+        configuration = avl.Configuration(str(self.config))
+        super().__init__(geometry, cases, name, config=configuration)
 
 
 """WIP - Multiprocessamento de aeronaves"""

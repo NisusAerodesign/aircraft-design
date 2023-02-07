@@ -6,7 +6,7 @@ with open('README.md', 'r') as arq:
     readme = arq.read()
 
 setup(name='aircraft-design',
-        version='0.0.4',
+        version='0.0.5',
         license='MIT',
         author='NisusAerodesign Irisson Lima',
         long_description=readme,
