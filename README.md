@@ -1,4 +1,17 @@
 # aircraft_design
+Para instalar a biblioteca oficialmente, você pode usar o gerenciador de pacotes pip.
+A seguinte linha de comando pode ser executada no terminal ou prompt de comando:
+```bash
+pip install aircraft-design
+```
+Assim, a biblioteca será baixada e instalada em seu ambiente de desenvolvimento Python. Também é possível instalar a versão mais recente diretamente do repositório GitHub, executando o comando:
+```bash
+pip install git+https://github.com/NisusAerodesign/aircraft-design.git
+```
+Feito isso, já é possível importar e utilizar a biblioteca nas suas aplicações.
+
+## 0.1. Como instalar
+Para instalar basta acessar pelo repositório da própria pipy[*](https://pypi.org/project/aircraft-design) e já estará pronto para uso.
 ### Projeto de Design de Aeronaves NISUS-aerodesign
 
 O projeto aircraft-design é um esforço desenvolvido por membros da equipe de competição **NISUS-aerodesign** com o objetivo de facilitar a análise de aeronaves. A equipe utiliza a ferramenta Vortex Lattice (ou malha de vórtices, em tradução livre), desenvolvida pelo MIT[*](https://web.mit.edu/drela/Public/web/avl/), para conduzir essas análises. 
