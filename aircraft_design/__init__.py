@@ -11,9 +11,6 @@ if not __config_path__ / 'avl' in __list_bin_path__:
     try:
         file = requests.get(__AVL_LINK__)
         open(str(__config_path__ / 'avl'), 'wb').write(file.content)
-        # file = input('Input path to binary AVL file: ')
-        # file = Path(file).absolute()
-        # copy(str(file), str(__config_path__ / 'avl'))
     except:
         raise AircraftDesignError('Binary not found!')
 

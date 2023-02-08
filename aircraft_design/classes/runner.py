@@ -16,11 +16,13 @@ __config_file__['environment'] = {
     'Executable': __config_path__ / 'avl',
     'PrintOutput': 'no',
     'GhostscriptExecutable': 'gs',
+    'LogLevel': 'WARNING',
 }
 
 __config_file__['output'] = {
     'Totals': 'yes',
     'SurfaceForces': 'yes',
+    'BodyForces': 'yes',
     'StripForces': 'yes',
     'ElementForces': 'yes',
     'BodyAxisDerivatives': 'yes',
