@@ -37,6 +37,8 @@ class Wing:
         z_position: float = 0.0,
         align: str = 'LE',
         name: str = 'wing',
+        panel_chordwise:int=10,
+        panel_spanwise:int=20,
         control: list = [None],
     ):
         self.airfoil = airfoil
@@ -52,6 +54,8 @@ class Wing:
         self.name = name
         self.align = align.upper()
         self.control = control
+        self.panel_chordwise=panel_chordwise,
+        self.panel_spanwise=panel_spanwise,
 
         self.cr = 2 * self.c * self.tr / (1 + self.tr)
         self.ct = 2 * self.c / (1 + self.tr)
@@ -107,9 +111,9 @@ class Wing:
 
         wing = avl.Surface(
             name=self.name,
-            n_chordwise=30,
+            n_chordwise=self.panel_chordwise,
             chord_spacing=avl.Spacing.cosine,
-            n_spanwise=30,
+            n_spanwise=self.panel_spanwise,
             span_spacing=avl.Spacing.neg_sine,
             y_duplicate=0.0,
             sections=sections,
