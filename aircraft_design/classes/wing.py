@@ -37,9 +37,9 @@ class Wing:
         z_position: float = 0.0,
         align: str = 'LE',
         name: str = 'wing',
-        panel_chordwise:int=10,
-        panel_spanwise:int=20,
         control: list = [None],
+        panel_chordwise:int=10,
+        panel_spanwise:int=25,
     ):
         self.airfoil = airfoil
         self.b = wingspan
@@ -54,8 +54,8 @@ class Wing:
         self.name = name
         self.align = align.upper()
         self.control = control
-        self.panel_chordwise=panel_chordwise,
-        self.panel_spanwise=panel_spanwise,
+        self.panel_chordwise=panel_chordwise
+        self.panel_spanwise=panel_spanwise
 
         self.cr = 2 * self.c * self.tr / (1 + self.tr)
         self.ct = 2 * self.c / (1 + self.tr)
@@ -65,6 +65,7 @@ class Wing:
         )
 
     def __mount_wing__(self) -> avl.Surface:
+        airfoil_path = str(self.airfoil.absolute())
 
         d_sweep_tip = 0.5 * self.b * np.tan(self.sweep * np.pi / 180)
         d_sweep_tra = 0.5 * self.tp * self.b * np.tan(self.sweep * np.pi / 180)

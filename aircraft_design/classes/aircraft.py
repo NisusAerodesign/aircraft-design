@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # from avlwrapper import Aircraft, Symmetry, Surface, Point
 import avlwrapper as avl
-
-
 class Aircraft:
     def __init__(
         self,
@@ -10,7 +8,7 @@ class Aircraft:
         ground_effect: float,
         reference_chord: float,
         reference_span: float,
-        surfaces_list: list[avl.Surface],
+        surfaces_list: list,
         ref_point_x: float = 0.0,
         ref_point_y: float = 0.0,
         ref_point_z: float = 0.0,
@@ -22,7 +20,7 @@ class Aircraft:
         self.__x = ref_point_x
         self.__y = ref_point_y
         self.__z = ref_point_z
-        self.surfaces = surfaces_list
+        self.surfaces = [part.surface for part in surfaces_list]
 
     """ GET PROPERTIES """
 
