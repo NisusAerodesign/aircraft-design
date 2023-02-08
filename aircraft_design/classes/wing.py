@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from aircraft_design.classes import AircraftDesignError
 
-
 def __correct_angle_sweep__(
     align: str, b: float, sweep: float, ct: float, tr: float
 ) -> float:
@@ -130,7 +129,7 @@ class Wing:
         return self.c * self.b
 
     def plot(
-        self, figure=None, axis=None, linewidth: float = 1.0, color='blue'
+        self, figure=None, axis=None, linewidth: float = 1.0, color:str='black'
     ):
         if figure == None and axis == None:
             figure = plt.figure()

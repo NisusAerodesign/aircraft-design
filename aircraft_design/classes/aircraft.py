@@ -91,7 +91,7 @@ class Aircraft:
         return aircraft
 
     def plot(
-        self, figure=None, axis=None, linewidth: float = 1.0, color='blue'
+        self, figure=None, axis=None, linewidth: float = 1.0, color='black'
     ) -> tuple:
 
         for surface in self.surfaces:
