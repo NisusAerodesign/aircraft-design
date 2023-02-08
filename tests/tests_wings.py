@@ -1,0 +1,1 @@
+from aircraft_design import Wing
