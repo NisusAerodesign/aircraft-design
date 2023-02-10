@@ -1,16 +1,15 @@
-from aircraft_design import Wing, Aircraft, Session
-from avlwrapper import Parameter, Case
+from aircraft_design import Wing, Aircraft, Session, Parameter, Case
 from pathlib import Path
 
-airfoil_a = Path('basic_airfoils/E423.dat')
-airfoil_b= Path('basic_airfoils/SD7032-NEG.dat')
+airfoil_a = Path('aircraft_design/basic_airfoils/E423.dat')
+airfoil_b= Path('aircraft_design/basic_airfoils/SD7032-NEG.dat')
 def test_just_create_wing():
-    main_wing = Wing(airfoil=airfoil_a, wingspan=1.8, mean_chord=0.5).surface
+    main_wing = Wing(airfoil=airfoil_a, wingspan=1.8, mean_chord=0.5)
     return True
 
 def test_just_create_aircraft():
-    main_wing = Wing(airfoil=airfoil_a, wingspan=1.8, mean_chord=0.5).surface
-    main_eh = Wing(airfoil=airfoil_b, wingspan=0.8, mean_chord=0.24).surface
+    main_wing = Wing(airfoil=airfoil_a, wingspan=1.8, mean_chord=0.5)
+    main_eh = Wing(airfoil=airfoil_b, wingspan=0.8, mean_chord=0.24)
 
     my_plane = Aircraft(
         mach=0,
