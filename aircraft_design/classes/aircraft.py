@@ -5,10 +5,10 @@ class Aircraft:
     def __init__(
         self,
         mach: float,
-        ground_effect: float,
         reference_chord: float,
         reference_span: float,
         surfaces_list: list,
+        ground_effect: float | None = None,
         ref_point_x: float = 0.0,
         ref_point_y: float = 0.0,
         ref_point_z: float = 0.0,
@@ -75,18 +75,28 @@ class Aircraft:
         self.__z = value
 
     def geometry(self, name):
-
-        aircraft = avl.Aircraft(
-            name=name,
-            reference_area=self.ref_area,
-            reference_chord=self.chord,
-            reference_span=self.span,
-            reference_point=self.ref_point,
-            mach=self.mach,
-            z_symmetry=avl.Symmetry.symmetric,
-            z_symmetry_plane=-self.h_ge,
-            surfaces=self.surfaces,
-        )
+        if self.h_ge == None:
+            aircraft = avl.Aircraft(
+                name=name,
+                reference_area=self.ref_area,
+                reference_chord=self.chord,
+                reference_span=self.span,
+                reference_point=self.ref_point,
+                mach=self.mach,
+                z_symmetry=avl.Symmetry.symmetric,
+                z_symmetry_plane=-self.h_ge,
+                surfaces=self.surfaces,
+            )
+        else:
+            aircraft = avl.Aircraft(
+                name=name,
+                reference_area= self.ref_area,
+                reference_chord=self.chord,
+                reference_span=self.span,
+                reference_point=self.ref_point,
+                mach=self.mach,
+                z_symmetry = avl.Symmetry.none,
+                surfaces=self.surfaces)
 
         return aircraft
 
