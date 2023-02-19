@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aircraft-design"
-version = "0.0.12"
+version = "0.0.13"
 description = "Condensed module for Aircraft Design"
 authors = ["Nisus Aerodesign <ufsc.nisus@gmail.com>","Irisson Lima <irisson2203@gmail.com>"]
 maintainers = ["Irisson Lima <irisson2203@gmail.com>"]

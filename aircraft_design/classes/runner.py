@@ -64,15 +64,15 @@ class FunctionRunner:
             result_list = []
             future_list = []
 
-            for session in self.args_list:
-                worker = executor.submit(__Session_Run__, session)
+            for args in self.args_list:
+                worker = executor.submit(self.function, args)
                 future_list.append(worker)
             
             for worker in as_completed(future_list):
                 result_list.append(worker.result())
 
 """
-WIP - Multiprocessamento de aeronaves
+WIP - Multiprocessamento de sessões das aeronaves
 """
 def __Session_Run__(session:Session)->tuple:
     return session.run_all_cases()
