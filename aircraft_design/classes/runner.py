@@ -58,7 +58,6 @@ class FunctionRunner:
         self.args_list = args_list
 
     def run_all_cases(self, max_workers:int|None=None):
-        func_list = []
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             result_list = []
@@ -70,7 +69,8 @@ class FunctionRunner:
             
             for worker in as_completed(future_list):
                 result_list.append(worker.result())
-
+        
+        return result_list
 """
 WIP - Multiprocessamento de sessões das aeronaves
 """

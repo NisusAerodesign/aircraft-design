@@ -75,7 +75,7 @@ class Aircraft:
         self.__z = value
 
     def geometry(self, name):
-        if self.h_ge == None:
+        if self.h_ge != None:
             aircraft = avl.Aircraft(
                 name=name,
                 reference_area=self.ref_area,
