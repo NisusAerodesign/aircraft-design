@@ -70,7 +70,7 @@ class FunctionRunner:
             for worker in as_completed(future_list):
                 result_list.append(worker.result())
         
-        return result_list
+            return result_list
 """
 WIP - Multiprocessamento de sessões das aeronaves
 """
