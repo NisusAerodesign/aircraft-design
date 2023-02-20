@@ -77,7 +77,7 @@ class Wing:
         root_section = avl.Section(
             leading_edge_point=pto_wrt,
             chord=self.cr,
-            airfoil=avl.FileAirfoil(self.airfoil),
+            airfoil=avl.FileAirfoil(airfoil_path),
             angle=self.alpha,
             controls=self.control,
         )
@@ -85,7 +85,7 @@ class Wing:
         tip_section = avl.Section(
             leading_edge_point=pto_wtp,
             chord=self.ct,
-            airfoil=avl.FileAirfoil(self.airfoil),
+            airfoil=avl.FileAirfoil(airfoil_path),
             angle=self.alpha,
             controls=self.control,
         )
@@ -100,7 +100,7 @@ class Wing:
             transition_section = avl.Section(
                 leading_edge_point=pto_wtr,
                 chord=self.cr,
-                airfoil=avl.FileAirfoil(self.airfoil),
+                airfoil=avl.FileAirfoil(airfoil_path),
                 angle=self.alpha,
                 controls=self.control,
             )
