@@ -20,7 +20,8 @@ class Aircraft:
         self.__x = ref_point_x
         self.__y = ref_point_y
         self.__z = ref_point_z
-        self.surfaces = [part.surface for part in surfaces_list]
+        self.surfaces = surfaces_list
+        self.__surfaces = [part.surface for part in surfaces_list]
 
     """ GET PROPERTIES """
 
@@ -85,7 +86,7 @@ class Aircraft:
                 mach=self.mach,
                 z_symmetry=avl.Symmetry.symmetric,
                 z_symmetry_plane=-self.h_ge,
-                surfaces=self.surfaces,
+                surfaces=self.__surfaces,
             )
         else:
             aircraft = avl.Aircraft(
@@ -96,7 +97,7 @@ class Aircraft:
                 reference_point=self.ref_point,
                 mach=self.mach,
                 z_symmetry = avl.Symmetry.none,
-                surfaces=self.surfaces)
+                surfaces=self.__surfaces)
 
         return aircraft
 
