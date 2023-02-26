@@ -26,7 +26,7 @@ def test_run_simple_session():
 
     aircraft = Aircraft(
         mach=0,
-        ground_effect=0,
+        ground_effect=None,
         reference_chord=0.5,
         reference_span=1.8,
         surfaces_list=[main_eh, main_wing]
