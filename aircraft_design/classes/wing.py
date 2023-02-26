@@ -24,7 +24,7 @@ def __correct_angle_sweep__(
 class Wing:
     def __init__(
         self,
-        airfoil: Path,
+        airfoil: Path | str,
         wingspan: float,
         mean_chord: float,
         taper_ratio: float = 1.0,
@@ -40,7 +40,7 @@ class Wing:
         panel_chordwise:int=10,
         panel_spanwise:int=25,
     ):
-        self.airfoil = airfoil
+        self.airfoil = Path(airfoil) if type(airfoil)==str else airfoil
         self.b = wingspan
         self.c = mean_chord
         self.tr = taper_ratio
@@ -58,20 +58,25 @@ class Wing:
 
         self.cr = 2 * self.c * self.tr / (1 + self.tr)
         self.ct = 2 * self.c / (1 + self.tr)
-
-        self.sweep = __correct_angle_sweep__(
-            self.align, self.b, self.sweep, self.ct, self.tr
-        )
+        
+        if align == 'C':
+            self.__dif = 0.5*(self.cr-self.ct)
+        elif align == 'TE':
+            self.__dif = self.cr-self.ct
+        elif align == 'LE':
+            self.__dif = 0
+        else:
+            raise AircraftDesignError(f'Align {align} not recognize')
 
     def __mount_wing__(self) -> avl.Surface:
         airfoil_path = str(self.airfoil.absolute())
 
-        d_sweep_tip = 0.5 * self.b * np.tan(self.sweep * np.pi / 180)
         d_sweep_tra = 0.5 * self.tp * self.b * np.tan(self.sweep * np.pi / 180)
+        d_sweep_tip = 0.5 * self.b * np.tan(self.sweep * np.pi / 180)
 
         pto_wrt = avl.Point(self.xp, self.yp, self.zp)   # root
         pto_wtp = avl.Point(
-            self.xp + d_sweep_tip, self.yp + 0.5 * self.b, self.zp
+            self.xp + d_sweep_tip + self.__dif, self.yp + 0.5 * self.b, self.zp
         )   # tip
 
         root_section = avl.Section(
@@ -92,7 +97,7 @@ class Wing:
 
         if self.tp > 0:
             pto_wtr = avl.Point(
-                self.xp + d_sweep_tra,
+                self.xp+d_sweep_tra,
                 self.yp + 0.5 * self.tp * self.b,
                 self.zp,
             )   # transition
@@ -156,12 +161,12 @@ class Wing:
         pos_r = self.xp
         pos_t = self.xp
         wing_x = [
-            pos_t + d_sweep_tip + self.ct * wing_a_x,
+            pos_t + d_sweep_tip + self.ct * wing_a_x + self.__dif,
             pos_r + d_sweep_tra + self.cr * wing_a_x,
             pos_r + d_sweep_roo + self.cr * wing_a_x,
             pos_r + d_sweep_roo + self.cr * wing_a_x,
             pos_r + d_sweep_tra + self.cr * wing_a_x,
-            pos_t + d_sweep_tip + self.ct * wing_a_x,
+            pos_t + d_sweep_tip + self.ct * wing_a_x + self.__dif,
         ]
 
         pos_r = 0
@@ -195,7 +200,7 @@ class Wing:
         # Plot das linhas bordo de atk
         axis.plot(
             [
-                self.xp + d_sweep_tip,
+                self.xp + d_sweep_tip + self.__dif,
                 self.xp + d_sweep_tra,
                 self.xp + d_sweep_roo,
             ],
@@ -212,7 +217,7 @@ class Wing:
             [
                 self.xp + d_sweep_roo,
                 self.xp + d_sweep_tra,
-                self.xp + d_sweep_tip,
+                self.xp + d_sweep_tip + self.__dif,
             ],
             [
                 self.yp + 0,
@@ -226,7 +231,7 @@ class Wing:
         # Linhas de bordo de fuga
         axis.plot(
             [
-                self.xp + d_sweep_tip + self.ct * inc_x,
+                self.xp + d_sweep_tip + self.ct * inc_x + self.__dif,
                 self.xp + d_sweep_tra + self.cr * inc_x,
                 self.xp + d_sweep_roo + self.cr * inc_x,
             ],
@@ -247,7 +252,7 @@ class Wing:
             [
                 self.xp + d_sweep_roo + self.cr * inc_x,
                 self.xp + d_sweep_tra + self.cr * inc_x,
-                self.xp + d_sweep_tip + self.ct * inc_x,
+                self.xp + d_sweep_tip + self.ct * inc_x + self.__dif,
             ],
             [
                 self.yp + 0,
