@@ -1,10 +1,10 @@
 from aircraft_design.classes.xfoil_controler import run_xfoil
 from aircraft_design.classes.runner import __config_path__
-
+from pathlib import Path
 
 
 if __name__ == '__main__':
-    airfoil_name = 'NACA0012'
+    airfoil_name = Path('aircraft_design/basic_airfoils/E423.dat')
     alpha_i = 0
     alpha_f = 10
     alpha_step = 0.25
@@ -18,4 +18,4 @@ if __name__ == '__main__':
     # polar_data = np.loadtxt('polar_file.txt', skiprows=12)
 
     run_xfoil(bin_path, airfoil_name, Re, alpha_i, 
-                alpha_f, alpha_step=0.5, n_iter=100)
+                alpha_f, alpha_step=0.5, n_iter=250)

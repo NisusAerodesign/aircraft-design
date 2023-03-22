@@ -3,8 +3,8 @@ from aircraft_design import Wing, Aircraft
 from pathlib import Path
 
 def test_dimentions_geometry_taper():
-    wing = Wing('aircraft_design/basic_airfoils/S1223.dat', 2.3, 0.5, 2, 0.1, sweep_angle=0, align='C', name='wing')
-    tail = Wing('aircraft_design/basic_airfoils/SD7032-NEG.dat', 1, 0.5, x_position=1.1, z_position=0.25, name='tail')
+    wing = Wing('aircraft_design/basic_airfoils/S1223.dat', 2.3, 0.5, 2, 0.3, sweep_angle=0, align='C', name='wing')
+    tail = Wing('aircraft_design/basic_airfoils/SD7032-NEG.dat', 1, 0.5, x_position=1.1+0.33, z_position=0.21, name='tail')
     airplane = Aircraft(0, 0.5, 2.3, [wing, tail])
     airplane_geom = airplane.geometry('airplane')
     x_pos_real = airplane_geom.surfaces[0].sections[1].leading_edge_point.x
