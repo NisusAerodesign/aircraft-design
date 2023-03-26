@@ -27,7 +27,6 @@ if __name__ == '__main__':
         taper_ratio=1,
         x_position=1.38,
         z_position=0.212,
-        # control=[elevator],
     )
 
     aircraft = Aircraft(
