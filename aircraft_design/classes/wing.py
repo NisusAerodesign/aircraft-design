@@ -28,6 +28,7 @@ class Wing:
     def __init__(
         self,
         airfoil: Path | str,
+        name: str,
         wingspan: float,
         mean_chord: float,
         taper_ratio: float = 1.0,
@@ -37,8 +38,8 @@ class Wing:
         x_position: float = 0.0,
         y_position: float = 0.0,
         z_position: float = 0.0,
+        dihedral: float = 0.0,
         align: str = 'LE',
-        name: str = 'wing',
         control: list = [None],
         panel_chordwise: int = 10,
         panel_spanwise: int = 25,
@@ -53,6 +54,7 @@ class Wing:
         self.xp = x_position
         self.yp = y_position
         self.zp = z_position
+        self.dihedral = dihedral
         self.name = name
         self.align = align.upper()
         self.control = control
@@ -61,6 +63,8 @@ class Wing:
 
         self.cr = 2 * self.c * self.tr / (1 + self.tr)
         self.ct = 2 * self.c / (1 + self.tr)
+
+        self.__delta_ct = lambda b, Delta: b / 2 * np.sin(np.radians(Delta))
 
         if align == 'C':
             self.__dif = 0.5 * (self.cr - self.ct)
@@ -71,6 +75,14 @@ class Wing:
         else:
             raise AircraftDesignError(f'Align {align} not recognize')
 
+    @property
+    def surface(self) -> avl.Surface:
+        return self.__mount_wing__()
+
+    @property
+    def reference_area(self) -> float:
+        return self.c * self.b
+
     def __mount_wing__(self) -> avl.Surface:
         airfoil_path = str(self.airfoil.absolute())
 
@@ -79,7 +91,9 @@ class Wing:
 
         pto_wrt = avl.Point(self.xp, self.yp, self.zp)   # root
         pto_wtp = avl.Point(
-            self.xp + d_sweep_tip + self.__dif, self.yp + 0.5 * self.b, self.zp
+            self.xp + d_sweep_tip + self.__dif,
+            self.yp + 0.5 * self.b,
+            self.zp + self.__delta_ct(self.b, self.dihedral),
         )   # tip
 
         root_section = avl.Section(
@@ -128,14 +142,6 @@ class Wing:
         )
         return wing
 
-    @property
-    def surface(self) -> avl.Surface:
-        return self.__mount_wing__()
-
-    @property
-    def reference_area(self) -> float:
-        return self.c * self.b
-
     def plot(
         self,
         figure=None,
@@ -178,13 +184,14 @@ class Wing:
 
         pos_r = 0
         pos_t = 0.5 * self.b
+        delta_tp = self.__delta_ct(self.b, self.dihedral)
         wing_z = [
-            self.ct * wing_a_z,
+            self.ct * wing_a_z + delta_tp,
             self.cr * wing_a_z,
             self.cr * wing_a_z,
             self.cr * wing_a_z,
             self.cr * wing_a_z,
-            self.ct * wing_a_z,
+            self.ct * wing_a_z + delta_tp,
         ]
 
         wing_y = [
@@ -216,7 +223,7 @@ class Wing:
                 -self.yp - 0.5 * self.tp * self.b,
                 -self.yp + 0,
             ],
-            [self.zp, self.zp, self.zp],
+            [self.zp + delta_tp, self.zp, self.zp],
             c=color,
             linewidth=linewidth,
         )
@@ -231,7 +238,7 @@ class Wing:
                 self.yp + 0.5 * self.tp * self.b,
                 self.yp + 0.5 * self.b,
             ],
-            [self.zp, self.zp, self.zp],
+            [self.zp, self.zp, self.zp + delta_tp],
             c=color,
             linewidth=linewidth,
         )
@@ -248,7 +255,7 @@ class Wing:
                 -self.yp + 0,
             ],
             [
-                self.zp + self.ct * inc_z,
+                self.zp + self.ct * inc_z + delta_tp,
                 self.zp + self.cr * inc_z,
                 self.zp + self.cr * inc_z,
             ],
@@ -269,7 +276,7 @@ class Wing:
             [
                 self.zp + self.cr * inc_z,
                 self.zp + self.cr * inc_z,
-                self.zp + self.ct * inc_z,
+                self.zp + self.ct * inc_z + delta_tp,
             ],
             c=color,
             linewidth=linewidth,
