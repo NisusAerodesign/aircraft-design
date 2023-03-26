@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import avlwrapper as avl
-from configparser import ConfigParser
-from aircraft_design.classes.errors import AircraftDesignError
-from pathlib import Path
 # from multiprocessing import Pool
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from configparser import ConfigParser
+from pathlib import Path
+
+import avlwrapper as avl
+
+from aircraft_design.classes.errors import AircraftDesignError
 
 __config_path__ = Path(__file__).parent.parent.absolute() / 'bin'
 
@@ -43,21 +45,26 @@ class Session(avl.Session):
         configuration = avl.Configuration(str(self.config))
         super().__init__(geometry, cases, name, config=configuration)
 
+
 """
 WIP - Closure para execução de código paralelo
 """
-def __closure__(function:callable, *args):
+
+
+def __closure__(function: callable, *args):
     def inner():
         result = function(*args)
         return result
+
     return inner
 
+
 class FunctionRunner:
-    def __init__(self, function:callable, args_list:list) -> None:
+    def __init__(self, function: callable, args_list: list) -> None:
         self.function = function
         self.args_list = args_list
 
-    def run_all_cases(self, max_workers:int|None=None):
+    def run_all_cases(self, max_workers: int | None = None):
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             result_list = []
@@ -66,22 +73,27 @@ class FunctionRunner:
             for args in self.args_list:
                 worker = executor.submit(self.function, args)
                 future_list.append(worker)
-            
+
             for worker in as_completed(future_list):
                 result_list.append(worker.result())
-        
+
             return result_list
+
+
 """
 WIP - Multiprocessamento de sessões das aeronaves
 """
-def __Session_Run__(session:Session)->tuple:
+
+
+def __Session_Run__(session: Session) -> tuple:
     return session.run_all_cases()
+
 
 class MultiSession:
     def __init__(self, session_array: list[Session]) -> None:
         self.session_array = session_array
 
-    def run_all_cases(self, max_workers:int|None=None):
+    def run_all_cases(self, max_workers: int | None = None):
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             result_list = []
@@ -90,7 +102,7 @@ class MultiSession:
             for session in self.session_array:
                 worker = executor.submit(__Session_Run__, session)
                 future_list.append(worker)
-            
+
             for worker in as_completed(future_list):
                 result_list.append(worker.result())
 

@@ -38,6 +38,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 pythonpath = "."
+norecursedirs = "deprecated"
 addopts = "--doctest-modules"
 
 [tool.isort]

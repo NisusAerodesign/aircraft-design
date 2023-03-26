@@ -1,7 +1,8 @@
 from pathlib import Path
-from builder import config_file
+
 import avlwrapper as avl
 import numpy as np
+from builder import config_file
 
 config_file()
 

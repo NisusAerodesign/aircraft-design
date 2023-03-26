@@ -1,6 +1,7 @@
 import abc
 from pathlib import Path
 from typing import List
+
 import avlwrapper as avl
 import matplotlib.pyplot as plt
 import numpy as np

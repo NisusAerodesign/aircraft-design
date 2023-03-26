@@ -1,11 +1,11 @@
 #%% Librarys
+from pathlib import Path
+
+import avlwrapper as avl
 import matplotlib.pyplot as plt
 import numpy as np
 import src.Aircraft_Classes as ac
-import avlwrapper as avl
-
 from src.builder import config_file
-from pathlib import Path
 
 #%% Paths
 PATH_CASE = Path('avlCases')

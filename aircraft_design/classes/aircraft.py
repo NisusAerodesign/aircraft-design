@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # from avlwrapper import Aircraft, Symmetry, Surface, Point
 import avlwrapper as avl
+
+
 class Aircraft:
     def __init__(
         self,
@@ -91,13 +93,14 @@ class Aircraft:
         else:
             aircraft = avl.Aircraft(
                 name=name,
-                reference_area= self.ref_area,
+                reference_area=self.ref_area,
                 reference_chord=self.chord,
                 reference_span=self.span,
                 reference_point=self.ref_point,
                 mach=self.mach,
-                z_symmetry = avl.Symmetry.none,
-                surfaces=self.__surfaces)
+                z_symmetry=avl.Symmetry.none,
+                surfaces=self.__surfaces,
+            )
 
         return aircraft
 

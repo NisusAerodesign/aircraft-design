@@ -4,7 +4,6 @@ from turtle import color
 from typing import Optional
 
 import matplotlib.pyplot as plt
-
 from src.pre_selection_geometry import *
 
 

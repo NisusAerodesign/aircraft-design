@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 from pathlib import Path
+
 import avlwrapper as avl
 import matplotlib.pyplot as plt
 import numpy as np
+
 from aircraft_design.classes import AircraftDesignError
+
 
 def __correct_angle_sweep__(
     align: str, b: float, sweep: float, ct: float, tr: float
@@ -37,10 +40,10 @@ class Wing:
         align: str = 'LE',
         name: str = 'wing',
         control: list = [None],
-        panel_chordwise:int=10,
-        panel_spanwise:int=25,
+        panel_chordwise: int = 10,
+        panel_spanwise: int = 25,
     ):
-        self.airfoil = Path(airfoil) if type(airfoil)==str else airfoil
+        self.airfoil = Path(airfoil) if type(airfoil) == str else airfoil
         self.b = wingspan
         self.c = mean_chord
         self.tr = taper_ratio
@@ -53,16 +56,16 @@ class Wing:
         self.name = name
         self.align = align.upper()
         self.control = control
-        self.panel_chordwise=panel_chordwise
-        self.panel_spanwise=panel_spanwise
+        self.panel_chordwise = panel_chordwise
+        self.panel_spanwise = panel_spanwise
 
         self.cr = 2 * self.c * self.tr / (1 + self.tr)
         self.ct = 2 * self.c / (1 + self.tr)
-        
+
         if align == 'C':
-            self.__dif = 0.5*(self.cr-self.ct)
+            self.__dif = 0.5 * (self.cr - self.ct)
         elif align == 'TE':
-            self.__dif = self.cr-self.ct
+            self.__dif = self.cr - self.ct
         elif align == 'LE':
             self.__dif = 0
         else:
@@ -97,7 +100,7 @@ class Wing:
 
         if self.tp > 0:
             pto_wtr = avl.Point(
-                self.xp+d_sweep_tra,
+                self.xp + d_sweep_tra,
                 self.yp + 0.5 * self.tp * self.b,
                 self.zp,
             )   # transition
@@ -134,7 +137,11 @@ class Wing:
         return self.c * self.b
 
     def plot(
-        self, figure=None, axis=None, linewidth: float = 1.0, color:str='black'
+        self,
+        figure=None,
+        axis=None,
+        linewidth: float = 1.0,
+        color: str = 'black',
     ):
         if figure == None and axis == None:
             figure = plt.figure()

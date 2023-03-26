@@ -2,7 +2,6 @@ from imp import reload
 from typing import Any, List, Tuple
 
 from scipy.optimize import fsolve
-
 from src.raymer_tables import *
 
 
