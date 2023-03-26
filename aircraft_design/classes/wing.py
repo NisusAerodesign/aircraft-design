@@ -39,7 +39,7 @@ class Wing:
         y_position: float = 0.0,
         z_position: float = 0.0,
         dihedral: float = 0.0,
-        align: str = 'LE',
+        align: float = 0.0,
         control: list = [None],
         panel_chordwise: int = 10,
         panel_spanwise: int = 25,
@@ -56,7 +56,7 @@ class Wing:
         self.zp = z_position
         self.dihedral = dihedral
         self.name = name
-        self.align = align.upper()
+        self.__align = align
         self.control = control
         self.panel_chordwise = panel_chordwise
         self.panel_spanwise = panel_spanwise
@@ -66,14 +66,21 @@ class Wing:
 
         self.__delta_ct = lambda b, Delta: b / 2 * np.sin(np.radians(Delta))
 
-        if align == 'C':
-            self.__dif = 0.5 * (self.cr - self.ct)
-        elif align == 'TE':
-            self.__dif = self.cr - self.ct
-        elif align == 'LE':
-            self.__dif = 0
-        else:
+        if align > 1 or align < 0:
             raise AircraftDesignError(f'Align {align} not recognize')
+        else:
+            self.__dif = (self.cr - self.ct)*self.__align
+    @property
+    def align(self)->float:
+        return self.__align
+    
+    @align.setter
+    def align(self, percent:float):
+        if percent > 1 or percent < 0:
+            raise AircraftDesignError(f'Align {percent} not recognize')
+        else:
+            self.__align = percent
+            self.__dif = (self.cr - self.ct)*self.__align
 
     @property
     def surface(self) -> avl.Surface:

@@ -15,7 +15,7 @@ if __name__ == '__main__':
         taper_ratio=1.84375,
         transition_point=0.35,
         x_position=0.166,
-        align='TE',
+        align=0.5,
         dihedral=3,
     )
 
@@ -35,6 +35,9 @@ if __name__ == '__main__':
         reference_span=2.3,
         surfaces_list=[wing, htail],
     )
+
+    aircraft.plot()
+    plt.show()
 
     decolagem = Case(name='Decolagem', alpha=0)
     session = Session(
