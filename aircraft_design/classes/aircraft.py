@@ -111,3 +111,27 @@ class Aircraft:
         for surface in self.surfaces:
             figure, axis = surface.plot(figure, axis, linewidth, color)
         return figure, axis
+
+    def sessao_critica(
+        alpha_max: float,
+        CL_max: float,
+        airplane: avl.Aircraft,
+        trim_param: avl.Parameter,
+    ):
+        ...
+        # alpha_cases = [alpha_max, 2.2*alpha_max, 0]
+        # cases = [Case(name=f'trimmed{i}', alpha=case, elevator=trim_param)
+        #         for i, case in enumerate(alpha_cases)]
+        # session = Session(geometry=airplane.geometry('aircraft'), cases=cases)
+        # results_cruz = session.run_all_cases()
+
+        # CL_wing = [results_cruz[i + 1]['StripForces']['wing']['cl'][0]
+        #             for i, _ in enumerate(alpha_cases)]
+        # i_stall = [i + 1
+        #             for i, CL_wup in enumerate(CL_wing)
+        #             if CL_wup < CL_max][0]
+
+        # CLmax, CDmax, CLt, alpha_m, K = estabilidade.interp(results_cruz, CL_max, i_stall, 1)
+        # CLt0 = results_cruz[1]['SurfaceForces']['Tail']['CL']
+        # CMalpha = results_cruz[1]['StabilityDerivatives']['Cma']
+        # return CLmax, CDmax, CLt, alpha_m, K, CLt0, CMalpha

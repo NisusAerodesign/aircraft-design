@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+from pandas import read_csv
 
 from aircraft_design.classes.runner import __config_path__
 
@@ -16,6 +17,7 @@ def input_file(
     alpha_f: float,
     alpha_step: float = 0.5,
     n_iter: int = 250,
+    mach:float=0.0,
 ):
 
     path = str(path.absolute()) if type(path) != str else path
@@ -28,13 +30,13 @@ def input_file(
     with open(f'{path}/input_file.in', 'w') as input_file:
         input_file.write(f'LOAD {airfoil_name}\n')
         input_file.write(airfoil_name + '\n')
-        input_file.write('PLOP\nG\n\n')
+        # input_file.write('PLOP\nG\n\n')
         input_file.write('PANE\n')
         input_file.write('OPER\n')
+        input_file.write(f'MACH {mach}\n')
         input_file.write(f'Visc {Re}\n')
         input_file.write('PACC\n')
         input_file.write(f'{path}/polar_file.txt\n\n')
-
         input_file.write(f'ITER {n_iter}\n')
         input_file.write(f'ASeq {alpha_i} {alpha_f} {alpha_step}\n')
         input_file.write('\n\n')
@@ -49,6 +51,7 @@ def run_xfoil(
     alpha_f: float,
     alpha_step: float = 0.5,
     n_iter: int = 100,
+    mach:float=0.0,
 ):
 
     bin_path = str(bin_path.absolute())
@@ -67,8 +70,10 @@ def run_xfoil(
             alpha_f=alpha_f,
             alpha_step=alpha_step,
             n_iter=n_iter,
+            mach=mach,
         )
 
+        # subprocess.call(f'{temp_dir}/xfoil < {temp_dir}/input_file.in', shell=False)
         with open(f'{temp_dir}/input_file.in', 'r') as arquivo:
             subprocess.run(
                 [f'{temp_dir}/xfoil'],
@@ -77,30 +82,7 @@ def run_xfoil(
                 stderr=subprocess.PIPE,
             )
 
-        polar_data = np.loadtxt(f'{temp_dir}/polar_file.txt', skiprows=12)
+        # polar_data = np.loadtxt(f'{temp_dir}/polar_file.txt', skiprows=12)
+        polar_data = read_csv(f'{temp_dir}/polar_file.txt', header=None , skiprows=12, delimiter=r"\s+")
+        polar_data.columns = ['alpha', 'CL', 'CD', 'CDp', 'CM', 'Top_Xtr', 'Bot_Xtr', 'Top_Itr', 'Bot_Itr']
         return polar_data
-
-
-if __name__ == '__main__':
-    airfoil_name = 'NACA0012'
-    alpha_i = 0
-    alpha_f = 10
-    alpha_step = 0.25
-    Re = 1000000
-    n_iter = 100
-
-    bin_path = __config_path__ / 'xfoil'
-
-    # subprocess.call('./aircraft_design/bin/xfoil < input_file.in', shell=True)
-
-    # polar_data = np.loadtxt('polar_file.txt', skiprows=12)
-
-    run_xfoil(
-        bin_path,
-        airfoil_name,
-        Re,
-        alpha_i,
-        alpha_f,
-        alpha_step=0.5,
-        n_iter=100,
-    )

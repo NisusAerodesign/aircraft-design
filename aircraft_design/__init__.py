@@ -31,4 +31,12 @@ if not __config_path__ / 'avl' in __list_bin_path__:
     except:
         raise AircraftDesignError('Binary not found!')
 
-from .classes import Aircraft, FunctionRunner, MultiSession, Session, Wing
+from .classes import (
+    Aircraft,
+    FunctionRunner,
+    MultiSession,
+    Session,
+    Wing,
+    run_xfoil,
+    Aifoil,
+)

@@ -69,18 +69,19 @@ class Wing:
         if align > 1 or align < 0:
             raise AircraftDesignError(f'Align {align} not recognize')
         else:
-            self.__dif = (self.cr - self.ct)*self.__align
+            self.__dif = (self.cr - self.ct) * self.__align
+
     @property
-    def align(self)->float:
+    def align(self) -> float:
         return self.__align
-    
+
     @align.setter
-    def align(self, percent:float):
+    def align(self, percent: float):
         if percent > 1 or percent < 0:
             raise AircraftDesignError(f'Align {percent} not recognize')
         else:
             self.__align = percent
-            self.__dif = (self.cr - self.ct)*self.__align
+            self.__dif = (self.cr - self.ct) * self.__align
 
     @property
     def surface(self) -> avl.Surface:

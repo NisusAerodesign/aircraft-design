@@ -7,3 +7,5 @@ from aircraft_design.classes.runner import (
     Session,
 )
 from aircraft_design.classes.wing import Wing
+from aircraft_design.classes.xfoil_controler import run_xfoil
+from aircraft_design.classes.airfoil import Airfoil
