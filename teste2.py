@@ -51,4 +51,6 @@
 # print(results)
 
 if __name__ == '__main__':
-    from aircraft_design import Airfoil
+    from aircraft_design import Aifoil
+    
+    airfoil = Aifoil()
